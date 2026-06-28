@@ -1,7 +1,31 @@
+# ---- Secrets (NEVER commit these) ----
+.env
+.env.*
+!.env.example
+
+# ---- Local app data ----
+config.json
+
+# ---- Python ----
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+
+# ---- Virtual environments ----
 venv/
 .venv/
+env/
+ENV/
+
+# ---- Test / data files ----
 *.xlsx
-.env
-config.json
+*.xlsm
+*.log
+
+# ---- OS / editor junk ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
