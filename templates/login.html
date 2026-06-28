@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Mail Sender</title>
+<style>
+  :root{--navy:#1B2340;--accent:#2563EB;--accent-dark:#1D4ED8;--border:#E4E7EE;
+    --entry-bg:#F9FAFB;--entry-bd:#D1D5DB;--muted:#6B7280;--red:#DC2626;--text:#111827}
+  *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",system-ui,sans-serif}
+  body{background:var(--navy);min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .box{background:#fff;border-radius:12px;padding:34px 30px;width:340px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+  h1{font-size:20px;color:var(--text)}
+  p.sub{color:var(--muted);font-size:13px;margin:4px 0 22px}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  input{width:100%;background:var(--entry-bg);border:1px solid var(--entry-bd);border-radius:6px;
+    padding:11px;font-size:15px;margin-bottom:16px;color:var(--text)}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  button{width:100%;background:var(--accent);color:#fff;border:none;border-radius:6px;
+    padding:12px;font-size:15px;font-weight:600;cursor:pointer}
+  button:hover{background:var(--accent-dark)}
+  .err{background:#FEF2F2;border:1px solid #FECACA;color:var(--red);font-size:13px;
+    padding:9px 12px;border-radius:6px;margin-bottom:16px}
+  .brand{font-size:13px;color:var(--accent);font-weight:700;margin-bottom:10px;letter-spacing:.3px}
+</style>
+</head>
+<body>
+  <form class="box" method="POST">
+    <div class="brand">MAIL SENDER</div>
+    <h1>Sign in</h1>
+    <p class="sub">Enter the access password to continue.</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <label>Password</label>
+    <input type="password" name="password" autofocus required>
+    <button type="submit">Sign in</button>
+  </form>
+</body>
+</html>

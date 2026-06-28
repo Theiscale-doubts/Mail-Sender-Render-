@@ -100,6 +100,7 @@
       <a data-page="compose"><span class="ic">✉</span>Compose</a>
       <a data-page="log"><span class="ic">≣</span>Sent Log</a>
       <a data-page="settings"><span class="ic">⚙</span>Settings</a>
+      <a href="/logout"><span class="ic">⎋</span>Logout</a>
     </nav>
     <div class="ver">v2.0 web</div>
   </aside>
@@ -238,7 +239,7 @@ function go(page){
   document.querySelectorAll(".content").forEach(c=>c.classList.toggle("hidden",c.dataset.pg!==page));
   if(page==="dashboard"||page==="log") refreshState();
 }
-document.querySelectorAll(".nav a").forEach(a=>a.onclick=()=>go(a.dataset.page));
+document.querySelectorAll(".nav a[data-page]").forEach(a=>a.onclick=()=>go(a.dataset.page));
 
 // ---------- clock + cred status ----------
 function tick(){
@@ -258,7 +259,9 @@ function setCredStatus(){
 
 // ---------- state ----------
 async function refreshState(){
-  const r=await fetch("/api/state"); STATE=await r.json();
+  const r=await fetch("/api/state");
+  if(r.status===401){location.href="/login";return;}   // session expired
+  STATE=await r.json();
   setCredStatus();
   // dashboard
   document.getElementById("stSent").textContent=STATE.stats.sent||0;

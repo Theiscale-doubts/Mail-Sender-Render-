@@ -9,7 +9,8 @@ Deploy:       one Render web service serves BOTH the page and the API.
 import os
 from datetime import datetime
 from collections import deque
-from flask import Flask, render_template, request, jsonify
+from flask import (Flask, render_template, request, jsonify,
+                   session, redirect, url_for)
 
 from excel_reader import read_workbook
 from email_sender import send_emails, fill
@@ -21,6 +22,9 @@ from config_store import (
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+# Session signing key. Set SECRET_KEY in Render so logins survive restarts;
+# otherwise a random per-process key is used (you just re-login after a restart).
+app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 
 # in-memory recent activity log (resets on restart)
 ACTIVITY = deque(maxlen=300)
@@ -37,6 +41,45 @@ def log(msg, kind=""):
 
 def url_for_wb(cfg, wb):
     return cfg.get("basic_url" if wb == "basic" else "main_url", "")
+
+
+# ── auth (single shared password) ───────────────────────────────────────────
+# Protection is ACTIVE only when APP_PASSWORD is set. If it's unset (e.g. local
+# dev) the app is open. Set APP_PASSWORD in Render to lock the public URL.
+_PUBLIC_ENDPOINTS = {"login", "logout", "static"}
+
+
+@app.before_request
+def _require_login():
+    gate = os.environ.get("APP_PASSWORD", "")
+    if not gate:
+        return  # no password configured -> protection disabled
+    if request.endpoint in _PUBLIC_ENDPOINTS or session.get("authed"):
+        return
+    if request.path.startswith("/api/"):
+        return jsonify({"ok": False, "auth": False,
+                        "error": "Session expired. Please log in again."}), 401
+    return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    gate = os.environ.get("APP_PASSWORD", "")
+    if not gate:
+        return redirect(url_for("index"))
+    error = ""
+    if request.method == "POST":
+        if request.form.get("password", "") == gate:
+            session["authed"] = True
+            return redirect(url_for("index"))
+        error = "Incorrect password."
+    return render_template("login.html", error=error)
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 # ── pages ──────────────────────────────────────────────────────────────────
