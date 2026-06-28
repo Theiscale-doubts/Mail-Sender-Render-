@@ -3,3 +3,5 @@ openpyxl==3.1.2
 requests==2.32.3
 python-dotenv==1.0.1
 gunicorn==21.2.0
+# only needed locally to obtain the Gmail API refresh token (get_gmail_token.py)
+google-auth-oauthlib==1.2.1

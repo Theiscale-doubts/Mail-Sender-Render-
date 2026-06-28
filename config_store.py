@@ -113,6 +113,17 @@ def get_credentials():
             os.environ.get("GMAIL_APP_PASSWORD", "").replace(" ", "").strip())
 
 
+def get_gmail_api_creds():
+    """Returns (client_id, client_secret, refresh_token) for the Gmail API."""
+    return (os.environ.get("GMAIL_CLIENT_ID", "").strip(),
+            os.environ.get("GMAIL_CLIENT_SECRET", "").strip(),
+            os.environ.get("GMAIL_REFRESH_TOKEN", "").strip())
+
+
+def gmail_api_ready() -> bool:
+    return all(get_gmail_api_creds())
+
+
 def save_credentials(email: str, password: str) -> None:
     """
     Write credentials to the local .env file AND the live process environment.

@@ -29,7 +29,10 @@ def send_emails(sender_email, app_password, recipients, subject_tpl, body_tpl,
             log_callback(msg)
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+        # 20s timeout so a blocked SMTP port fails fast with a clear message
+        # instead of hanging until the web worker is killed.
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context,
+                              timeout=20) as server:
             server.login(sender_email, app_password)
 
             for r in recipients:
@@ -61,6 +64,13 @@ def send_emails(sender_email, app_password, recipients, subject_tpl, body_tpl,
             "Gmail authentication failed. You must use a Gmail App Password "
             "(not your regular password). Enable 2-Step Verification, then create "
             "an App Password at myaccount.google.com -> Security -> App Passwords."
+        )
+    except (TimeoutError, OSError) as e:
+        raise RuntimeError(
+            "Could not connect to Gmail's mail server (SMTP). This usually means "
+            "the host is blocking outbound SMTP ports — common on free hosting like "
+            "Render. Use an email API (e.g. Brevo/Resend over HTTPS) or a host that "
+            f"allows SMTP. [{e}]"
         )
     except Exception as e:
         raise RuntimeError(f"SMTP error: {e}")

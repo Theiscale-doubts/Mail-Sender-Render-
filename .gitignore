@@ -6,6 +6,11 @@
 # ---- Local app data ----
 config.json
 
+# ---- Google OAuth secrets (never commit) ----
+client_secret*.json
+token.json
+*credentials*.json
+
 # ---- Python ----
 __pycache__/
 *.py[cod]

@@ -14,10 +14,11 @@ from flask import (Flask, render_template, request, jsonify,
 
 from excel_reader import read_workbook
 from email_sender import send_emails, fill
+from gmail_api import send_emails_api
 from sheets import download_xlsx
 from config_store import (
-    load_config, save_config, get_credentials, save_credentials, save_urls,
-    record_stats,
+    load_config, save_config, get_credentials, get_gmail_api_creds,
+    gmail_api_ready, save_credentials, save_urls, record_stats,
 )
 
 app = Flask(__name__)
@@ -93,9 +94,12 @@ def index():
 def api_state():
     cfg = load_config()
     email, pwd = get_credentials()
+    api_ok = gmail_api_ready()
     return jsonify({
         "email": email,
-        "has_password": bool(pwd),
+        # ready to send if either the Gmail API or an SMTP app password is set
+        "has_password": bool(pwd) or api_ok,
+        "send_method": "Gmail API" if api_ok else ("SMTP" if pwd else "none"),
         "basic_url": cfg.get("basic_url", ""),
         "main_url": cfg.get("main_url", ""),
         "templates": {
@@ -207,9 +211,16 @@ def api_send():
         return jsonify({"ok": False, "error": "Unknown workbook."}), 400
 
     sender, pwd = get_credentials()
-    if not sender or not pwd:
+    use_api = gmail_api_ready()
+    if use_api:
+        if not sender:
+            return jsonify({"ok": False,
+                            "error": "Set GMAIL_ADDRESS (the sender) in your env vars."}), 400
+    elif not sender or not pwd:
         return jsonify({"ok": False,
-                        "error": "No Gmail credentials. Add them in Settings."}), 400
+                        "error": "No Gmail credentials. Add them in Settings, or "
+                                 "configure the Gmail API (GMAIL_CLIENT_ID/SECRET/"
+                                 "REFRESH_TOKEN) for hosted sending."}), 400
 
     subject = (d.get("subject") or "").strip()
     body = d.get("body") or ""
@@ -238,7 +249,8 @@ def api_send():
     if not recipients:
         return jsonify({"ok": False, "error": "No recipients in the selected sheets."}), 400
 
-    log(f"--- {WB_LABELS[wb]}: sending to {len(recipients)} recipient(s) ---", "info")
+    via = "Gmail API" if use_api else "SMTP"
+    log(f"--- {WB_LABELS[wb]}: sending to {len(recipients)} recipient(s) via {via} ---", "info")
     lines = []
 
     def cb(m):
@@ -246,7 +258,12 @@ def api_send():
         log(m, "ok" if m.startswith("OK") else "err")
 
     try:
-        ok, fail, _ = send_emails(sender, pwd, recipients, subject, body, log_callback=cb)
+        if use_api:
+            cid, csec, rtok = get_gmail_api_creds()
+            ok, fail, _ = send_emails_api(sender, cid, csec, rtok,
+                                          recipients, subject, body, log_callback=cb)
+        else:
+            ok, fail, _ = send_emails(sender, pwd, recipients, subject, body, log_callback=cb)
     except RuntimeError as e:
         log(f"ERROR: {e}", "err")
         return jsonify({"ok": False, "error": str(e)}), 400
