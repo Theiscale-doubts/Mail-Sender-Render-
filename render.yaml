@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: mail-sender-web
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    # bind to Render's assigned $PORT; longer timeout so email batches don't get killed
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
+    autoDeploy: true

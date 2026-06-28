@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mail Sender</title>
+<style>
+  :root{
+    --bg:#F7F8FA; --sidebar:#1B2340; --sidebar-sel:#2C3A5E; --white:#FFFFFF;
+    --border:#E4E7EE; --accent:#2563EB; --accent-dark:#1D4ED8; --green:#16A34A;
+    --red:#DC2626; --amber:#D97706; --text:#111827; --muted:#6B7280; --subtle:#9CA3AF;
+    --entry-bg:#F9FAFB; --entry-bd:#D1D5DB; --blue-bg:#EFF6FF; --blue-fg:#1D4ED8;
+    --navy:#1B2340;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+
+  /* sidebar */
+  .sidebar{width:210px;background:var(--sidebar);color:#fff;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh}
+  .brand{padding:0 18px 14px;border-bottom:1px solid var(--sidebar-sel)}
+  .brand h1{font-size:16px}.brand p{font-size:11px;color:var(--subtle);margin-top:2px}
+  .nav{padding:10px 8px;flex:1}
+  .nav a{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:6px;color:#e5e7eb;text-decoration:none;font-size:14px;cursor:pointer;margin-bottom:2px}
+  .nav a:hover{background:var(--sidebar-sel)}
+  .nav a.active{background:var(--sidebar-sel);font-weight:600;color:#fff}
+  .nav .ic{width:22px;text-align:center;opacity:.85}
+  .ver{padding:12px 18px;font-size:11px;color:var(--subtle)}
+
+  /* main */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;font-size:13px;position:sticky;top:0;z-index:5}
+  #credStatus{font-weight:600}
+  .content{padding:26px 28px;max-width:1060px;width:100%}
+  h2.page-title{font-size:22px;margin-bottom:4px}
+  .subtitle{color:var(--muted);font-size:14px;margin-bottom:20px}
+
+  .card{background:var(--white);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;overflow:hidden}
+  .card-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .card-hd h3{font-size:15px}.card-hd p{font-size:12px;color:var(--muted);margin-top:2px}
+  .card-bd{padding:18px}
+
+  label.fld{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 5px}
+  input[type=text],input[type=email],input[type=password],textarea{
+    width:100%;background:var(--entry-bg);border:1px solid var(--entry-bd);border-radius:6px;
+    padding:9px 11px;font-size:14px;font-family:inherit;margin-bottom:14px;color:var(--text)}
+  textarea{font-family:Consolas,monospace;font-size:13px;resize:vertical;min-height:210px}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:220px}
+
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+  .btn:hover{background:var(--accent-dark)}.btn:disabled{opacity:.55;cursor:not-allowed}
+  .btn.green{background:var(--green)}.btn.green:hover{filter:brightness(.93)}
+  .btn.navy{background:var(--navy)}.btn.navy:hover{filter:brightness(1.25)}
+  .btn.outline{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  .btn.sm{padding:7px 13px;font-size:13px}
+  .btn.gray{background:#fff;color:var(--muted);border:1px solid var(--entry-bd)}
+
+  .hint{background:var(--blue-bg);border:1px solid #BFDBFE;color:var(--blue-fg);font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:14px}
+  .warn{background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;font-weight:600;font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:14px}
+
+  /* stat cards */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:22px}
+  .stat{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .stat .bar{height:4px}.stat .in{padding:14px 16px}
+  .stat .t{font-size:12px;color:var(--muted)}.stat .v{font-size:26px;font-weight:700;margin-top:4px}
+
+  /* tabs */
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:18px}
+  .tab{padding:10px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab[data-wb=main].active{color:var(--accent)}
+  .tab[data-wb=basic].active{color:var(--navy);border-bottom-color:var(--navy)}
+
+  .wbhead{padding:11px 16px;color:#fff;font-weight:600;font-size:14px;border-radius:7px 7px 0 0;display:flex;justify-content:space-between;align-items:center}
+  .sheetbox label{display:flex;align-items:center;gap:8px;font-size:14px;padding:5px 0}
+  .pill{display:inline-block;background:#F3F4F6;color:#374151;border-radius:12px;padding:2px 10px;font-size:12px;margin-left:auto}
+  .muted-sm{color:var(--muted);font-size:13px}
+
+  .log{background:#0B1120;color:#cbd5e1;font-family:Consolas,monospace;font-size:12px;border-radius:6px;padding:14px;height:300px;overflow:auto;white-space:pre-wrap}
+  .log .ok{color:#4ade80}.log .fail{color:#f87171}.log .info{color:#93c5fd}.log .err{color:#f87171}
+  .status{font-size:13px;font-weight:600;margin-top:12px;min-height:18px}
+
+  .step{font-size:13px;padding:4px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  .hidden{display:none}
+  .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+  .badge.on{background:#F0FDF4;color:#15803D}.badge.off{background:#FEF2F2;color:#B91C1C}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:6px 8px;border-bottom:1px solid var(--border)}
+  td.ts{color:var(--muted);white-space:nowrap;width:80px}
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><h1>Mail Sender</h1><p>Bulk Email Tool</p></div>
+    <nav class="nav">
+      <a data-page="dashboard" class="active"><span class="ic">▦</span>Dashboard</a>
+      <a data-page="workbooks"><span class="ic">▤</span>Workbooks</a>
+      <a data-page="compose"><span class="ic">✉</span>Compose</a>
+      <a data-page="log"><span class="ic">≣</span>Sent Log</a>
+      <a data-page="settings"><span class="ic">⚙</span>Settings</a>
+    </nav>
+    <div class="ver">v2.0 web</div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <span id="credStatus" style="color:var(--red)">No Gmail credentials set</span>
+      <span id="clock" style="color:var(--muted)"></span>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div class="content" data-pg="dashboard">
+      <h2 class="page-title">Dashboard</h2>
+      <p class="subtitle">Overview of your sending activity.</p>
+      <div class="stats">
+        <div class="stat"><div class="bar" style="background:var(--accent)"></div><div class="in"><div class="t">Total Sent</div><div class="v" id="stSent">0</div></div></div>
+        <div class="stat"><div class="bar" style="background:var(--red)"></div><div class="in"><div class="t">Failed</div><div class="v" id="stFail">0</div></div></div>
+        <div class="stat"><div class="bar" style="background:var(--green)"></div><div class="in"><div class="t">Send Batches</div><div class="v" id="stBatch">0</div></div></div>
+        <div class="stat"><div class="bar" style="background:var(--amber)"></div><div class="in"><div class="t">Credentials</div><div class="v" id="stCred" style="font-size:18px;padding-top:6px">—</div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h3>Quick actions</h3></div>
+        <div class="card-bd">
+          <button class="btn outline sm" onclick="go('workbooks')">Load Workbooks</button>
+          <button class="btn outline sm" onclick="go('compose')">Compose Email</button>
+          <button class="btn outline sm" onclick="go('settings')">Settings</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><h3>Recent activity</h3></div>
+        <div class="card-bd"><table id="dashLog"><tr><td class="muted-sm">No activity yet.</td></tr></table></div>
+      </div>
+    </div>
+
+    <!-- ===================== WORKBOOKS ===================== -->
+    <div class="content hidden" data-pg="workbooks">
+      <h2 class="page-title">Workbooks</h2>
+      <p class="subtitle">Load recipients from your two Google Sheets. (Set the URLs in Settings.)</p>
+      <div class="grid2">
+        <div class="card">
+          <div class="wbhead" style="background:var(--navy)">Basic Workbook <span class="badge off" id="wbBadge-basic">not loaded</span></div>
+          <div class="card-bd">
+            <div class="muted-sm" id="wbUrl-basic" style="word-break:break-all;margin-bottom:10px">No URL set.</div>
+            <button class="btn navy sm" onclick="loadWb('basic')">Load from Google Sheet</button>
+            <div class="sheetbox" id="wbSheets-basic" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="wbhead" style="background:var(--accent)">Main Workbook <span class="badge off" id="wbBadge-main">not loaded</span></div>
+          <div class="card-bd">
+            <div class="muted-sm" id="wbUrl-main" style="word-break:break-all;margin-bottom:10px">No URL set.</div>
+            <button class="btn sm" onclick="loadWb('main')">Load from Google Sheet</button>
+            <div class="sheetbox" id="wbSheets-main" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+      <div class="hint">Each sheet must be shared as <b>Anyone with the link → Viewer</b>. Headers in row 1, recipient data from row 6 (Email, Name, …).</div>
+    </div>
+
+    <!-- ===================== COMPOSE ===================== -->
+    <div class="content hidden" data-pg="compose">
+      <h2 class="page-title">Email Composer</h2>
+      <p class="subtitle">Write your email once — the same content is sent to every recipient in the selected sheets.</p>
+      <div class="tabs">
+        <div class="tab active" data-wb="basic" onclick="switchTab('basic')">Basic Workbook</div>
+        <div class="tab" data-wb="main" onclick="switchTab('main')">Main Workbook</div>
+      </div>
+
+      <div id="pane-basic"></div>
+      <div id="pane-main" class="hidden"></div>
+    </div>
+
+    <!-- ===================== SENT LOG ===================== -->
+    <div class="content hidden" data-pg="log">
+      <h2 class="page-title">Sent Log</h2>
+      <p class="subtitle">Activity from this session.</p>
+      <div class="card"><div class="card-bd"><div class="log" id="fullLog">No activity yet.</div></div></div>
+    </div>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <div class="content hidden" data-pg="settings">
+      <h2 class="page-title">Settings</h2>
+      <p class="subtitle">Credentials are stored in your .env (Render: secret env vars) so you never re-enter them.</p>
+      <div class="grid2">
+        <div>
+          <div class="card">
+            <div class="card-hd"><h3>Gmail Credentials</h3><p>Sender for all outgoing emails.</p></div>
+            <div class="card-bd">
+              <div class="warn">Use a Gmail <b>App Password</b> — NOT your normal login password.</div>
+              <label class="fld">Gmail Address</label>
+              <input type="email" id="setEmail" placeholder="you@gmail.com">
+              <label class="fld">App Password (16 chars)</label>
+              <input type="password" id="setPwd" placeholder="leave blank to keep current">
+              <button class="btn green" onclick="saveCreds()">Save Credentials</button>
+              <div class="status" id="credSaveStatus"></div>
+              <p class="muted-sm" style="margin-top:8px">On Render, set <b>GMAIL_ADDRESS</b> and <b>GMAIL_APP_PASSWORD</b> in the dashboard's Environment tab instead.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><h3>Google Sheet URLs</h3><p>Separate sheet for each workbook.</p></div>
+            <div class="card-bd">
+              <label class="fld">Basic Workbook — Sheet URL</label>
+              <input type="text" id="setBasicUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+              <label class="fld">Main Workbook — Sheet URL</label>
+              <input type="text" id="setMainUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+              <button class="btn" onclick="saveUrls()">Save URLs</button>
+              <div class="status" id="urlSaveStatus"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><h3>How to get a Gmail App Password</h3></div>
+          <div class="card-bd">
+            <div class="step">1. Go to <b>myaccount.google.com</b></div>
+            <div class="step">2. Click <b>Security</b> in the left sidebar</div>
+            <div class="step">3. Enable <b>2-Step Verification</b></div>
+            <div class="step">4. Scroll to <b>App Passwords</b> at the bottom</div>
+            <div class="step">5. Type a name (e.g. "MailSender") → <b>Create</b></div>
+            <div class="step">6. Copy the 16-character password → paste it above</div>
+            <div class="hint" style="margin-top:14px">Gmail SMTP limits: ~500/day (personal), ~2,000/day (Workspace).</div>
+            <div class="step" style="margin-top:10px"><b>Sheet sharing:</b> open each sheet → Share → "Anyone with the link" → Viewer.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const WB={basic:{label:"Basic Workbook",color:"var(--navy)"},main:{label:"Main Workbook",color:"var(--accent)"}};
+let STATE=null, activeTab="basic";
+const loaded={basic:null, main:null}; // sheet summaries after load
+
+// ---------- nav ----------
+function go(page){
+  document.querySelectorAll(".nav a").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
+  document.querySelectorAll(".content").forEach(c=>c.classList.toggle("hidden",c.dataset.pg!==page));
+  if(page==="dashboard"||page==="log") refreshState();
+}
+document.querySelectorAll(".nav a").forEach(a=>a.onclick=()=>go(a.dataset.page));
+
+// ---------- clock + cred status ----------
+function tick(){
+  document.getElementById("clock").textContent=new Date().toLocaleString("en-GB",
+    {weekday:"long",day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+setInterval(tick,1000);tick();
+
+function setCredStatus(){
+  const cs=document.getElementById("credStatus");
+  const ok=STATE&&STATE.email&&STATE.has_password;
+  cs.textContent=ok?("Sending as: "+STATE.email):"No Gmail credentials set";
+  cs.style.color=ok?"var(--green)":"var(--red)";
+  document.getElementById("stCred").textContent=ok?"Ready":"Not set";
+  document.getElementById("stCred").style.color=ok?"var(--green)":"var(--red)";
+}
+
+// ---------- state ----------
+async function refreshState(){
+  const r=await fetch("/api/state"); STATE=await r.json();
+  setCredStatus();
+  // dashboard
+  document.getElementById("stSent").textContent=STATE.stats.sent||0;
+  document.getElementById("stFail").textContent=STATE.stats.failed||0;
+  document.getElementById("stBatch").textContent=STATE.stats.batches||0;
+  // activity table
+  const dl=document.getElementById("dashLog");
+  if(STATE.activity.length){
+    dl.innerHTML=STATE.activity.map(a=>`<tr><td class="ts">${a.ts}</td><td>${esc(a.msg)}</td></tr>`).join("");
+  }else dl.innerHTML='<tr><td class="muted-sm">No activity yet.</td></tr>';
+  // full log
+  const fl=document.getElementById("fullLog");
+  fl.innerHTML=STATE.activity.length?STATE.activity.slice().map(a=>
+    `<span class="${a.kind||''}">[${a.ts}] ${esc(a.msg)}\n</span>`).join(""):"No activity yet.";
+  // settings + workbook URLs
+  document.getElementById("setEmail").value=STATE.email||"";
+  document.getElementById("setBasicUrl").value=STATE.basic_url||"";
+  document.getElementById("setMainUrl").value=STATE.main_url||"";
+  document.getElementById("wbUrl-basic").textContent=STATE.basic_url||"No URL set.";
+  document.getElementById("wbUrl-main").textContent=STATE.main_url||"No URL set.";
+}
+function esc(s){return (s+"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+// ---------- workbooks ----------
+async function loadWb(wb){
+  const box=document.getElementById("wbSheets-"+wb);
+  box.innerHTML='<p class="muted-sm">Loading…</p>';
+  try{
+    const r=await fetch("/api/load",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({workbook:wb})});
+    const d=await r.json();
+    if(!d.ok){box.innerHTML=`<p style="color:var(--red);font-size:13px">${esc(d.error)}</p>`;return;}
+    loaded[wb]=d.sheets;
+    const badge=document.getElementById("wbBadge-"+wb);
+    badge.textContent=d.total+" recipients";badge.className="badge on";
+    box.innerHTML=`<p class="muted-sm" style="margin-bottom:6px">${d.sheets.length} sheet(s):</p>`+
+      d.sheets.map(s=>`<label><span>${esc(s.sheet_name)}</span><span class="pill">${s.count}</span></label>`).join("");
+    buildPane(wb); // refresh compose sheet list
+  }catch(e){box.innerHTML='<p style="color:var(--red)">Load failed.</p>';}
+}
+
+// ---------- compose ----------
+function switchTab(wb){
+  activeTab=wb;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.wb===wb));
+  document.getElementById("pane-basic").classList.toggle("hidden",wb!=="basic");
+  document.getElementById("pane-main").classList.toggle("hidden",wb!=="main");
+}
+
+function buildPane(wb){
+  const t=(STATE&&STATE.templates&&STATE.templates[wb])||{subject:"",body:""};
+  const sheets=loaded[wb];
+  const sheetHtml=sheets?sheets.map(s=>
+    `<label><input type="checkbox" class="chk-${wb}" value="${esc(s.sheet_name)}" checked> ${esc(s.sheet_name)}<span class="pill">${s.count}</span></label>`).join("")
+    :'<p class="muted-sm">Not loaded yet — go to Workbooks and click “Load”.</p>';
+  document.getElementById("pane-"+wb).innerHTML=`
+    <div class="card">
+      <div class="wbhead" style="background:${WB[wb].color}">Email Template — ${WB[wb].label}</div>
+      <div class="card-bd">
+        <div class="hint">Placeholders: <b>{Name}</b> &nbsp; <b>{date}</b> &nbsp; (or any column header)</div>
+        <div class="row">
+          <div style="flex:2">
+            <label class="fld">Subject</label>
+            <input type="text" id="subj-${wb}" value="${esc(t.subject)}">
+            <label class="fld">Body</label>
+            <textarea id="body-${wb}">${esc(t.body)}</textarea>
+          </div>
+          <div style="flex:1;min-width:230px">
+            <label class="fld">Sheets to include</label>
+            <div class="sheetbox" id="chkbox-${wb}" style="border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--entry-bg);margin-bottom:14px">${sheetHtml}</div>
+            <button class="btn gray sm" onclick="preview('${wb}')">Preview</button>
+            <button class="btn outline sm" onclick="saveTpl('${wb}')">Save Template</button>
+          </div>
+        </div>
+        <button class="btn green" style="font-size:15px;padding:12px 24px" onclick="sendWb('${wb}')">Send ${WB[wb].label} Emails</button>
+        <div class="status" id="sendStatus-${wb}"></div>
+        <div id="previewBox-${wb}"></div>
+        <div class="log hidden" id="sendLog-${wb}" style="margin-top:12px"></div>
+      </div>
+    </div>`;
+}
+
+function tpl(wb){return {subject:document.getElementById("subj-"+wb).value, body:document.getElementById("body-"+wb).value};}
+function selectedSheets(wb){return [...document.querySelectorAll(".chk-"+wb+":checked")].map(c=>c.value);}
+
+async function saveTpl(wb){
+  const st=document.getElementById("sendStatus-"+wb);
+  const body={templates:{}};body.templates[wb]=tpl(wb);
+  await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  st.textContent="Template saved.";st.style.color="var(--green)";
+}
+
+async function preview(wb){
+  const pb=document.getElementById("previewBox-"+wb);
+  pb.innerHTML='<p class="muted-sm" style="margin-top:10px">Generating preview…</p>';
+  const t=tpl(wb);
+  const r=await fetch("/api/preview",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({workbook:wb,subject:t.subject,body:t.body,sheets:selectedSheets(wb)})});
+  const d=await r.json();
+  if(!d.ok){pb.innerHTML=`<p style="color:var(--red);margin-top:10px">${esc(d.error)}</p>`;return;}
+  pb.innerHTML=`<div class="card" style="margin-top:12px"><div class="card-hd"><h3>Preview → ${esc(d.to)}</h3></div>
+    <div class="card-bd"><b>Subject:</b> ${esc(d.subject)}<hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:14px">${esc(d.body)}</pre></div></div>`;
+}
+
+async function sendWb(wb){
+  const st=document.getElementById("sendStatus-"+wb);
+  if(!STATE||!STATE.email||!STATE.has_password){st.textContent="Set Gmail credentials in Settings first.";st.style.color="var(--red)";go('settings');return;}
+  if(!loaded[wb]){st.textContent="Load this workbook first (Workbooks page).";st.style.color="var(--red)";return;}
+  const btnLog=document.getElementById("sendLog-"+wb);
+  st.textContent="Sending… this may take a while.";st.style.color="var(--amber)";
+  btnLog.classList.remove("hidden");btnLog.textContent="";
+  const t=tpl(wb);
+  try{
+    const r=await fetch("/api/send",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({workbook:wb,subject:t.subject,body:t.body,sheets:selectedSheets(wb)})});
+    const d=await r.json();
+    if(!d.ok){st.textContent=d.error;st.style.color="var(--red)";return;}
+    btnLog.innerHTML=d.log.map(l=>{const c=l.startsWith("OK")?"ok":l.startsWith("FAIL")?"fail":"info";return `<span class="${c}">${esc(l)}\n</span>`;}).join("");
+    btnLog.scrollTop=btnLog.scrollHeight;
+    st.textContent="Done — "+d.summary;st.style.color=d.failed===0?"var(--green)":"var(--red)";
+    refreshState();
+  }catch(e){st.textContent="Request failed.";st.style.color="var(--red)";}
+}
+
+// ---------- settings saves ----------
+async function saveCreds(){
+  const st=document.getElementById("credSaveStatus");
+  const email=document.getElementById("setEmail").value, pwd=document.getElementById("setPwd").value;
+  const r=await fetch("/api/credentials",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password:pwd})});
+  const d=await r.json();
+  st.textContent=d.ok?"Credentials saved.":d.error;st.style.color=d.ok?"var(--green)":"var(--red)";
+  if(d.ok){document.getElementById("setPwd").value="";refreshState();}
+}
+async function saveUrls(){
+  const st=document.getElementById("urlSaveStatus");
+  const body={basic_url:document.getElementById("setBasicUrl").value,main_url:document.getElementById("setMainUrl").value};
+  const r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const d=await r.json();
+  st.textContent=d.ok?"URLs saved.":"Failed.";st.style.color=d.ok?"var(--green)":"var(--red)";
+  refreshState();
+}
+
+// ---------- init ----------
+(async()=>{await refreshState();buildPane("basic");buildPane("main");})();
+</script>
+</body>
+</html>
