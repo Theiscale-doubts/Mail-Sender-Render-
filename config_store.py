@@ -56,17 +56,32 @@ except Exception:  # python-dotenv not available
             out.append(f"{key}={value}")
         p.write_text("\n".join(out) + "\n", encoding="utf-8")
 
+# Shared default for both workbooks — general-purpose Live Doubt Class reminder.
+DEFAULT_SUBJECT = "Reminder — Live Doubt Class Starting Shortly | The iScale"
+DEFAULT_BODY = (
+    "The iScale\n"
+    "Simplifying Learning for Every Curious Mind\n"
+    "📅 Session Reminder\n"
+    "👋 Hello, Learner!\n"
+    "Your Live Live Doubt Class is starting shortly! Don't miss out — join now "
+    "to get your questions answered by our expert mentors.\n\n"
+    "🔔 Your session is about to begin. Please log in and navigate to your "
+    "enrolled courses to join.\n\n"
+    "How to Join\n\n"
+    "1 Visit theiscale.com/login and sign in to your account.\n"
+    "2 Click on Enrolled Courses → Start Courses.\n"
+    "3 Click the Live Classes button.\n"
+    "4 Click on your Batch Tile to see the Live Doubt Class listing.\n"
+    "5 Join the class at the scheduled date and time. See you there!\n"
+    "We look forward to seeing you in the session. Happy learning! 🚀\n\n"
+    "Have questions? Reach us at doubts@theiscale.com\n\n"
+    "Visit us at www.theiscale.com\n\n"
+    "© 2025 The iScale. All rights reserved."
+)
+
 DEFAULT_TEMPLATES = {
-    "basic": {
-        "subject": "Weekly Update - {date}",
-        "body": ("Dear {Name},\n\nThis is your weekly update.\n\n"
-                 "Write your message here.\n\nRegards,\nThe Team"),
-    },
-    "main": {
-        "subject": "Important Notice - {date}",
-        "body": ("Hello {Name},\n\nWe have an important update for you.\n\n"
-                 "Write your message here.\n\nThank you,\nAdmin"),
-    },
+    "basic": {"subject": DEFAULT_SUBJECT, "body": DEFAULT_BODY},
+    "main": {"subject": DEFAULT_SUBJECT, "body": DEFAULT_BODY},
 }
 
 # Only templates + stats are persisted to config.json.

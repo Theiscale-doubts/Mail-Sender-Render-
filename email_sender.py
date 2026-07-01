@@ -8,13 +8,10 @@ from datetime import datetime
 from email_template import render_html
 
 
-def fill(template, recipient):
-    """Replace {ColumnName} and {date} placeholders with recipient values."""
-    result = template
-    result = result.replace("{date}", datetime.now().strftime("%d %B %Y"))
-    for key, val in recipient.items():
-        result = result.replace(f"{{{key}}}", val or "")
-    return result
+def fill(template, recipient=None):
+    """Fill placeholders. General-purpose: only {date} is substituted
+    (no per-recipient name/column personalization)."""
+    return (template or "").replace("{date}", datetime.now().strftime("%d %B %Y"))
 
 
 def send_emails(sender_email, app_password, recipients, subject_tpl, body_tpl,

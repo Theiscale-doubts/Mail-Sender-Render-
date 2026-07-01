@@ -27,6 +27,18 @@ BG = "#faf1f2"
 CARD = "#ffffff"
 CALLOUT_BG = "#fdecef"
 
+# Fixed header — always rendered exactly like this, independent of the body text.
+BRAND = "The iScale"
+TAGLINE = "Simplifying Learning for Every Curious Mind"
+BADGE_TEXT = "Session Reminder"
+
+# Fixed footer — always rendered exactly like this, independent of the body text.
+FOOTER_LINES = [
+    "Have questions? Reach us at doubts@theiscale.com",
+    "Visit us at www.theiscale.com",
+    "© 2025 The iScale. All rights reserved.",
+]
+
 # Key phrases that get bolded wherever they appear (matches the reference look)
 KEY_PHRASES = [
     "Live Doubt Class",
@@ -110,21 +122,25 @@ def _callout_html(text):
 
 
 def _parse(body_text):
-    """Split the plain-text body into structured pieces for the template."""
+    """Split the plain-text body into body + footer HTML.
+
+    The brand name, tagline and the 📅 line are dropped here — they always
+    live in the fixed header, so we never render them (or the subject) again
+    inside the message body.
+    """
     lines = [ln.rstrip() for ln in body_text.replace("\r\n", "\n").split("\n")]
     while lines and not lines[0].strip():
         lines.pop(0)
     while lines and not lines[-1].strip():
         lines.pop()
 
-    brand = lines.pop(0).strip() if lines else "The iScale"
-    tagline = ""
-    if lines and lines[0].strip() and not _STEP_RE.match(lines[0]):
-        tagline = lines.pop(0).strip()
+    # drop a leading brand / tagline line if the body repeats the header
+    if lines and lines[0].strip().lower() == BRAND.lower():
+        lines.pop(0)
+    if lines and lines[0].strip().lower() == TAGLINE.lower():
+        lines.pop(0)
 
-    badge = ""          # header pill (from the 📅 line)
     body_parts = []
-    footer_parts = []
     steps = []
     step_open = False
 
@@ -151,7 +167,8 @@ def _parse(body_text):
 
         low = stripped.lower()
         if stripped.startswith("📅"):
-            badge = stripped.replace("📅", "").strip()
+            # the 📅 line belongs to the fixed header pill — never in the body
+            continue
         elif stripped.startswith("👋"):
             body_parts.append(
                 f'<h1 style="margin:0 0 14px 0;font-size:22px;color:{INK};'
@@ -164,10 +181,8 @@ def _parse(body_text):
                 f'{_esc(stripped)}</div>'
             )
         elif low.startswith(("have questions", "visit us")) or stripped.startswith("©"):
-            footer_parts.append(
-                f'<p style="margin:3px 0;font-size:13px;color:{MUTED};'
-                f'line-height:1.6;">{_rich(stripped)}</p>'
-            )
+            # footer lines belong to the fixed footer — never in the body
+            continue
         elif stripped[:1] in "🔔⚠🎯⏰📢✨":
             body_parts.append(_callout_html(stripped))
         else:
@@ -177,18 +192,27 @@ def _parse(body_text):
             )
 
     flush_steps()
-    return brand, tagline, badge, "".join(body_parts), "".join(footer_parts)
+    return "".join(body_parts)
 
 
 def render_html(body_text, recipient=None):
-    """Wrap a plain-text body into the branded HTML base template."""
-    brand, tagline, badge, body_html, footer_html = _parse(body_text or "")
+    """Wrap a plain-text body into the branded HTML base template.
+
+    The maroon header (brand / tagline / SESSION REMINDER) and the footer are
+    always the same fixed blocks below — they never change with the body, and
+    the subject line is not shown inside the message.
+    """
+    body_html = _parse(body_text or "")
+    footer_html = "".join(
+        f'<p style="margin:3px 0;font-size:13px;color:{MUTED};'
+        f'line-height:1.6;">{_rich(line)}</p>'
+        for line in FOOTER_LINES
+    )
 
     tagline_html = (
         f'<div style="margin:8px 0 0 0;font-size:12px;color:#f3d6db;'
         f'letter-spacing:2px;text-transform:uppercase;font-weight:600;">'
-        f'{_esc(tagline)}</div>'
-        if tagline else ""
+        f'{_esc(TAGLINE)}</div>'
     )
     divider_html = (
         '<div style="width:44px;height:2px;background:rgba(255,255,255,0.45);'
@@ -198,14 +222,12 @@ def render_html(body_text, recipient=None):
         f'<div style="display:inline-block;padding:9px 22px;'
         f'background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.35);'
         f'border-radius:22px;color:#ffffff;font-size:12px;font-weight:700;'
-        f'letter-spacing:1.5px;text-transform:uppercase;">📅 {_esc(badge)}</div>'
-        if badge else ""
+        f'letter-spacing:1.5px;text-transform:uppercase;">📅 {_esc(BADGE_TEXT)}</div>'
     )
 
     footer_block = (
         f'<tr><td style="padding:18px 40px 30px 40px;border-top:1px solid #f0e3e5;'
         f'text-align:center;">{footer_html}</td></tr>'
-        if footer_html else ""
     )
 
     return f"""\
@@ -214,7 +236,7 @@ def render_html(body_text, recipient=None):
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{_esc(brand)}</title>
+<title>{_esc(BRAND)}</title>
 </head>
 <body style="margin:0;padding:0;background:{BG};">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -228,7 +250,7 @@ def render_html(body_text, recipient=None):
       <tr><td style="background:linear-gradient(135deg,{PRIMARY} 0%,{PRIMARY_DARK} 100%);
                      padding:36px 32px 30px 32px;text-align:center;">
         <div style="font-size:28px;font-weight:800;color:#ffffff;
-                    letter-spacing:0.3px;">{_esc(brand)}</div>
+                    letter-spacing:0.3px;">{_esc(BRAND)}</div>
         {tagline_html}
         {divider_html}
         {badge_html}
