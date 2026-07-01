@@ -12,6 +12,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from email_sender import fill   # reuse the {placeholder} filler
+from email_template import render_html
 
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send"
@@ -54,11 +55,14 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
         if not email or "@" not in email:
             continue
 
+        body = fill(body_tpl, r)
         msg = MIMEMultipart("alternative")
         msg["From"] = sender_email
         msg["To"] = email
         msg["Subject"] = fill(subject_tpl, r)
-        msg.attach(MIMEText(fill(body_tpl, r), "plain"))
+        # plain-text first (fallback), branded HTML second (preferred)
+        msg.attach(MIMEText(body, "plain"))
+        msg.attach(MIMEText(render_html(body, r), "html"))
         raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
         try:

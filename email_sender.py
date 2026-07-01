@@ -5,6 +5,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
+from email_template import render_html
+
 
 def fill(template, recipient):
     """Replace {ColumnName} and {date} placeholders with recipient values."""
@@ -48,7 +50,9 @@ def send_emails(sender_email, app_password, recipients, subject_tpl, body_tpl,
                 msg["From"] = sender_email
                 msg["To"] = email
                 msg["Subject"] = subject
+                # plain-text first (fallback), branded HTML second (preferred)
                 msg.attach(MIMEText(body, "plain"))
+                msg.attach(MIMEText(render_html(body, r), "html"))
 
                 try:
                     server.sendmail(sender_email, email, msg.as_string())
