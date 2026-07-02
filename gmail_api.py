@@ -7,6 +7,10 @@ Runtime needs only `requests`. Get the refresh token once by running
 get_gmail_token.py locally (see README).
 """
 import base64
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+
 import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -37,10 +41,17 @@ def _access_token(client_id, client_secret, refresh_token):
     return r.json().get("access_token")
 
 
+# Parallel workers. Gmail rate-limits around 2.5 sends/sec sustained; 6 workers
+# keeps a big batch fast while 429s are retried below.
+MAX_WORKERS = 6
+
+
 def send_emails_api(sender_email, client_id, client_secret, refresh_token,
                     recipients, subject_tpl, body_tpl, log_callback=None):
     """Same contract as email_sender.send_emails -> (success, fail, errors)."""
-    success, fail, errors = 0, 0, []
+    counters = {"success": 0, "fail": 0}
+    errors = []
+    lock = threading.Lock()
 
     def log(msg):
         if log_callback:
@@ -49,11 +60,11 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
     token = _access_token(client_id, client_secret, refresh_token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    for r in recipients:
+    def send_one(r):
         email = (r.get("Email", "") or "").strip()
         name = (r.get("Name", "") or "").strip()
         if not email or "@" not in email:
-            continue
+            return
 
         body = fill(body_tpl, r)
         msg = MIMEMultipart("alternative")
@@ -68,16 +79,28 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
         try:
             resp = requests.post(SEND_URL, headers=headers, timeout=20,
                                  json={"raw": raw})
+            if resp.status_code in (429, 500, 502, 503):
+                # rate-limited / transient — back off once and retry
+                time.sleep(2)
+                resp = requests.post(SEND_URL, headers=headers, timeout=20,
+                                     json={"raw": raw})
             if resp.status_code == 200:
-                success += 1
+                with lock:
+                    counters["success"] += 1
                 log(f"OK   Sent -> {name} <{email}>")
             else:
-                fail += 1
-                errors.append(f"{email}: {resp.status_code} {resp.text[:150]}")
+                with lock:
+                    counters["fail"] += 1
+                    errors.append(f"{email}: {resp.status_code} {resp.text[:150]}")
                 log(f"FAIL Failed -> {name} <{email}>  ({resp.status_code})")
         except requests.RequestException as e:
-            fail += 1
-            errors.append(f"{email}: {e}")
+            with lock:
+                counters["fail"] += 1
+                errors.append(f"{email}: {e}")
             log(f"FAIL Failed -> {name} <{email}>  ({e})")
 
-    return success, fail, errors
+    workers = min(MAX_WORKERS, max(1, len(recipients)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(send_one, recipients))
+
+    return counters["success"], counters["fail"], errors

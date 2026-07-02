@@ -4,6 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    # bind to Render's assigned $PORT; longer timeout so email batches don't get killed
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120
+    # single worker (send-job state is in-memory) + threads so live-progress
+    # polls are answered while a batch is sending in the background
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 8 --timeout 120
     autoDeploy: true

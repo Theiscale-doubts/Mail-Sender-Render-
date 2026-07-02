@@ -7,6 +7,8 @@ Deploy:       one Render web service serves BOTH the page and the API.
               See README.md.
 """
 import os
+import threading
+import uuid
 from datetime import datetime
 from collections import deque
 from flask import (Flask, render_template, request, jsonify,
@@ -29,6 +31,12 @@ app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(32)
 
 # in-memory recent activity log (resets on restart)
 ACTIVITY = deque(maxlen=300)
+
+# send jobs: the send loop runs in a background thread so the HTTP request
+# returns immediately; the browser polls /api/send/status for live progress.
+# In-memory state requires a single web process (gunicorn --workers 1).
+JOBS = {}
+JOBS_LOCK = threading.Lock()
 
 WB_LABELS = {"basic": "Basic Workbook", "main": "Main Workbook"}
 
@@ -249,30 +257,78 @@ def api_send():
     if not recipients:
         return jsonify({"ok": False, "error": "No recipients in the selected sheets."}), 400
 
+    with JOBS_LOCK:
+        if any(not j["done"] for j in JOBS.values()):
+            return jsonify({"ok": False,
+                            "error": "A send is already in progress. "
+                                     "Wait for it to finish."}), 409
+        # keep memory bounded: drop finished jobs, keep only the newest few
+        for jid in [k for k, j in JOBS.items() if j["done"]][:-3]:
+            JOBS.pop(jid, None)
+        job_id = uuid.uuid4().hex
+        job = {"lines": [], "done": False, "sent": 0, "failed": 0,
+               "total": len(recipients), "summary": "", "error": None}
+        JOBS[job_id] = job
+
     via = "Gmail API" if use_api else "SMTP"
     log(f"--- {WB_LABELS[wb]}: sending to {len(recipients)} recipient(s) via {via} ---", "info")
-    lines = []
 
     def cb(m):
-        lines.append(m)
+        with JOBS_LOCK:
+            job["lines"].append(m)
+            if m.startswith("OK"):
+                job["sent"] += 1
+            elif m.startswith("FAIL"):
+                job["failed"] += 1
         log(m, "ok" if m.startswith("OK") else "err")
 
-    try:
-        if use_api:
-            cid, csec, rtok = get_gmail_api_creds()
-            ok, fail, _ = send_emails_api(sender, cid, csec, rtok,
-                                          recipients, subject, body, log_callback=cb)
-        else:
-            ok, fail, _ = send_emails(sender, pwd, recipients, subject, body, log_callback=cb)
-    except RuntimeError as e:
-        log(f"ERROR: {e}", "err")
-        return jsonify({"ok": False, "error": str(e)}), 400
+    def worker():
+        try:
+            if use_api:
+                cid, csec, rtok = get_gmail_api_creds()
+                ok, fail, _ = send_emails_api(sender, cid, csec, rtok,
+                                              recipients, subject, body, log_callback=cb)
+            else:
+                ok, fail, _ = send_emails(sender, pwd, recipients, subject, body, log_callback=cb)
+        except Exception as e:
+            log(f"ERROR: {e}", "err")
+            with JOBS_LOCK:
+                job["done"] = True
+                job["error"] = str(e)
+            return
+        record_stats(cfg, ok, fail)
+        summary = f"{ok} sent, {fail} failed."
+        log(f"Done — {summary}", "ok" if fail == 0 else "err")
+        with JOBS_LOCK:
+            job.update(done=True, sent=ok, failed=fail, summary=summary)
 
-    record_stats(cfg, ok, fail)
-    summary = f"{ok} sent, {fail} failed."
-    log(f"Done — {summary}", "ok" if fail == 0 else "err")
-    return jsonify({"ok": True, "sent": ok, "failed": fail,
-                    "log": lines, "summary": summary})
+    threading.Thread(target=worker, daemon=True).start()
+    return jsonify({"ok": True, "job": job_id, "total": len(recipients)})
+
+
+@app.route("/api/send/status")
+def api_send_status():
+    """Live progress for a send job. ?offset=N returns only log lines >= N."""
+    job_id = request.args.get("job", "")
+    try:
+        offset = max(0, int(request.args.get("offset", 0)))
+    except ValueError:
+        offset = 0
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if not job:
+            return jsonify({"ok": False,
+                            "error": "Unknown send job (server may have "
+                                     "restarted). Check the Sent Log page."}), 404
+        return jsonify({"ok": True,
+                        "lines": job["lines"][offset:],
+                        "offset": len(job["lines"]),
+                        "done": job["done"],
+                        "sent": job["sent"],
+                        "failed": job["failed"],
+                        "total": job["total"],
+                        "summary": job["summary"],
+                        "error": job["error"]})
 
 
 if __name__ == "__main__":

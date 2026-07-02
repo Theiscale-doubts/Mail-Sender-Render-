@@ -165,12 +165,12 @@
       <h2 class="page-title">Email Composer</h2>
       <p class="subtitle">Write your email once — the same content is sent to every recipient in the selected sheets.</p>
       <div class="tabs">
-        <div class="tab active" data-wb="basic" onclick="switchTab('basic')">Basic Workbook</div>
-        <div class="tab" data-wb="main" onclick="switchTab('main')">Main Workbook</div>
+        <div class="tab active" data-wb="main" onclick="switchTab('main')">Main Workbook</div>
+        <div class="tab" data-wb="basic" onclick="switchTab('basic')">Basic Workbook</div>
       </div>
 
-      <div id="pane-basic"></div>
-      <div id="pane-main" class="hidden"></div>
+      <div id="pane-main"></div>
+      <div id="pane-basic" class="hidden"></div>
     </div>
 
     <!-- ===================== SENT LOG ===================== -->
@@ -230,7 +230,7 @@
 
 <script>
 const WB={basic:{label:"Basic Workbook",color:"var(--navy)"},main:{label:"Main Workbook",color:"var(--accent)"}};
-let STATE=null, activeTab="basic";
+let STATE=null, activeTab="main";
 const loaded={basic:null, main:null}; // sheet summaries after load
 
 // ---------- nav ----------
@@ -366,24 +366,59 @@ async function preview(wb){
     <pre style="white-space:pre-wrap;font-family:inherit;font-size:14px">${esc(d.body)}</pre></div></div>`;
 }
 
+function logLineHtml(l){
+  const c=l.startsWith("OK")?"ok":l.startsWith("FAIL")?"fail":"info";
+  return `<span class="${c}">${esc(l)}\n</span>`;
+}
+
 async function sendWb(wb){
   const st=document.getElementById("sendStatus-"+wb);
   if(!STATE||!STATE.email||!STATE.has_password){st.textContent="Set Gmail credentials in Settings first.";st.style.color="var(--red)";go('settings');return;}
   if(!loaded[wb]){st.textContent="Load this workbook first (Workbooks page).";st.style.color="var(--red)";return;}
   const btnLog=document.getElementById("sendLog-"+wb);
-  st.textContent="Sending… this may take a while.";st.style.color="var(--amber)";
+  const btn=document.querySelector(`#pane-${wb} .btn.green`);
+  st.textContent="Starting send…";st.style.color="var(--amber)";
   btnLog.classList.remove("hidden");btnLog.textContent="";
+  if(btn)btn.disabled=true;
   const t=tpl(wb);
   try{
+    // start the job (returns immediately; sending continues on the server)
     const r=await fetch("/api/send",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({workbook:wb,subject:t.subject,body:t.body,sheets:selectedSheets(wb)})});
     const d=await r.json();
     if(!d.ok){st.textContent=d.error;st.style.color="var(--red)";return;}
-    btnLog.innerHTML=d.log.map(l=>{const c=l.startsWith("OK")?"ok":l.startsWith("FAIL")?"fail":"info";return `<span class="${c}">${esc(l)}\n</span>`;}).join("");
-    btnLog.scrollTop=btnLog.scrollHeight;
-    st.textContent="Done — "+d.summary;st.style.color=d.failed===0?"var(--green)":"var(--red)";
-    refreshState();
-  }catch(e){st.textContent="Request failed.";st.style.color="var(--red)";}
+
+    // poll for live progress
+    let offset=0, misses=0;
+    st.textContent=`Sending 0 / ${d.total}…`;
+    while(true){
+      await new Promise(res=>setTimeout(res,700));
+      let j;
+      try{
+        const s=await fetch(`/api/send/status?job=${d.job}&offset=${offset}`);
+        j=await s.json();
+        misses=0;
+      }catch(e){
+        // transient network blip — keep polling, the server is still sending
+        if(++misses>=10){st.textContent="Lost connection while sending — emails may still be going out. Check the Sent Log page.";st.style.color="var(--red)";return;}
+        continue;
+      }
+      if(!j.ok){st.textContent=j.error;st.style.color="var(--red)";return;}
+      if(j.lines.length){
+        btnLog.innerHTML+=j.lines.map(logLineHtml).join("");
+        btnLog.scrollTop=btnLog.scrollHeight;
+        offset=j.offset;
+      }
+      if(j.done){
+        if(j.error){st.textContent=j.error;st.style.color="var(--red)";}
+        else{st.textContent="Done — "+j.summary;st.style.color=j.failed===0?"var(--green)":"var(--red)";}
+        refreshState();
+        return;
+      }
+      st.textContent=`Sending ${j.sent+j.failed} / ${j.total}…  (${j.sent} sent, ${j.failed} failed)`;
+    }
+  }catch(e){st.textContent="Could not start the send. Check your connection and try again.";st.style.color="var(--red)";}
+  finally{if(btn)btn.disabled=false;}
 }
 
 // ---------- settings saves ----------
@@ -405,7 +440,7 @@ async function saveUrls(){
 }
 
 // ---------- init ----------
-(async()=>{await refreshState();buildPane("basic");buildPane("main");})();
+(async()=>{await refreshState();buildPane("main");buildPane("basic");})();
 </script>
 </body>
 </html>
