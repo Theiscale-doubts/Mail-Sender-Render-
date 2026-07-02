@@ -4,35 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign in — Mail Sender</title>
+<link rel="icon" type="image/png" href="/static/iscale-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{--navy:#1B2340;--accent:#2563EB;--accent-dark:#1D4ED8;--border:#E4E7EE;
-    --entry-bg:#F9FAFB;--entry-bd:#D1D5DB;--muted:#6B7280;--red:#DC2626;--text:#111827}
-  *{box-sizing:border-box;margin:0;padding:0;font-family:"Segoe UI",system-ui,sans-serif}
-  body{background:var(--navy);min-height:100vh;display:flex;align-items:center;justify-content:center}
-  .box{background:#fff;border-radius:12px;padding:34px 30px;width:340px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
-  h1{font-size:20px;color:var(--text)}
-  p.sub{color:var(--muted);font-size:13px;margin:4px 0 22px}
-  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
-  input{width:100%;background:var(--entry-bg);border:1px solid var(--entry-bd);border-radius:6px;
-    padding:11px;font-size:15px;margin-bottom:16px;color:var(--text)}
-  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-  button{width:100%;background:var(--accent);color:#fff;border:none;border-radius:6px;
-    padding:12px;font-size:15px;font-weight:600;cursor:pointer}
-  button:hover{background:var(--accent-dark)}
-  .err{background:#FEF2F2;border:1px solid #FECACA;color:var(--red);font-size:13px;
-    padding:9px 12px;border-radius:6px;margin-bottom:16px}
-  .brand{font-size:13px;color:var(--accent);font-weight:700;margin-bottom:10px;letter-spacing:.3px}
+  :root{--border:#E8EAEE;--border-2:#DCDFE5;--text:#17181C;--text-2:#5C6068;--text-3:#9BA0AA;
+    --accent:#4F46E5;--accent-hov:#4338CA;--accent-ring:rgba(79,70,229,.18);--red:#DC2626}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:#F7F8FA;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .box{background:#fff;border:1px solid var(--border);border-radius:14px;padding:36px 32px;
+    width:100%;max-width:380px;box-shadow:0 1px 2px rgba(16,24,40,.05),0 12px 32px -8px rgba(16,24,40,.1)}
+  .logo{height:38px;display:block;margin-bottom:20px}
+  h1{font-size:19px;font-weight:600;letter-spacing:-.02em;color:var(--text)}
+  p.sub{color:var(--text-2);font-size:13.5px;margin:5px 0 24px}
+  label{display:block;font-size:12.5px;font-weight:500;color:var(--text-2);margin-bottom:6px}
+  input{width:100%;background:#fff;border:1px solid var(--border-2);border-radius:8px;
+    padding:10px 12px;font-size:14px;font-family:inherit;margin-bottom:16px;color:var(--text);
+    transition:border-color .12s,box-shadow .12s}
+  input::placeholder{color:var(--text-3)}
+  input:hover{border-color:#C8CCD4}
+  input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+  button{width:100%;height:40px;background:var(--accent);color:#fff;border:none;border-radius:8px;
+    font-size:14px;font-weight:500;font-family:inherit;cursor:pointer;
+    transition:background .12s,transform .06s}
+  button:hover{background:var(--accent-hov)}
+  button:active{transform:translateY(1px)}
+  .err{background:#FEF2F2;border:1px solid #F5C6C6;color:var(--red);font-size:13px;
+    padding:9px 12px;border-radius:8px;margin-bottom:16px}
+  .foot{text-align:center;font-size:12px;color:var(--text-3);margin-top:20px}
 </style>
 </head>
 <body>
   <form class="box" method="POST">
-    <div class="brand">MAIL SENDER</div>
-    <h1>Sign in</h1>
-    <p class="sub">Enter the access password to continue.</p>
+    <img class="logo" src="/static/iscale-logo.png" alt="The iScale">
+    <h1>Welcome back</h1>
+    <p class="sub">Enter your access password to open Mail Sender.</p>
     {% if error %}<div class="err">{{ error }}</div>{% endif %}
     <label>Password</label>
-    <input type="password" name="password" autofocus required>
+    <input type="password" name="password" placeholder="••••••••••••" autofocus required>
     <button type="submit">Sign in</button>
+    <div class="foot">Mail Sender · Bulk email workspace</div>
   </form>
 </body>
 </html>

@@ -41,9 +41,22 @@ def _access_token(client_id, client_secret, refresh_token):
     return r.json().get("access_token")
 
 
-# Parallel workers. Gmail rate-limits around 2.5 sends/sec sustained; 6 workers
+# Parallel workers. Gmail rate-limits around 2.5 sends/sec sustained; 8 workers
 # keeps a big batch fast while 429s are retried below.
-MAX_WORKERS = 6
+MAX_WORKERS = 8
+
+# One requests.Session per worker thread: keeps the TLS connection to Gmail
+# open across sends instead of re-handshaking for every email.
+# (Session objects are not guaranteed thread-safe, hence per-thread.)
+_thread_local = threading.local()
+
+
+def _session():
+    s = getattr(_thread_local, "session", None)
+    if s is None:
+        s = requests.Session()
+        _thread_local.session = s
+    return s
 
 
 def send_emails_api(sender_email, client_id, client_secret, refresh_token,
@@ -77,13 +90,13 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
         raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
         try:
-            resp = requests.post(SEND_URL, headers=headers, timeout=20,
-                                 json={"raw": raw})
+            resp = _session().post(SEND_URL, headers=headers, timeout=20,
+                                   json={"raw": raw})
             if resp.status_code in (429, 500, 502, 503):
                 # rate-limited / transient — back off once and retry
                 time.sleep(2)
-                resp = requests.post(SEND_URL, headers=headers, timeout=20,
-                                     json={"raw": raw})
+                resp = _session().post(SEND_URL, headers=headers, timeout=20,
+                                       json={"raw": raw})
             if resp.status_code == 200:
                 with lock:
                     counters["success"] += 1

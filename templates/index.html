@@ -3,112 +3,243 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mail Sender</title>
+<title>Mail Sender — The iScale</title>
+<link rel="icon" type="image/png" href="/static/iscale-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#F7F8FA; --sidebar:#1B2340; --sidebar-sel:#2C3A5E; --white:#FFFFFF;
-    --border:#E4E7EE; --accent:#2563EB; --accent-dark:#1D4ED8; --green:#16A34A;
-    --red:#DC2626; --amber:#D97706; --text:#111827; --muted:#6B7280; --subtle:#9CA3AF;
-    --entry-bg:#F9FAFB; --entry-bd:#D1D5DB; --blue-bg:#EFF6FF; --blue-fg:#1D4ED8;
-    --navy:#1B2340;
+    --bg:#F7F8FA; --surface:#FFFFFF; --sidebar:#FBFBFC;
+    --border:#E8EAEE; --border-2:#DCDFE5;
+    --text:#17181C; --text-2:#5C6068; --text-3:#9BA0AA;
+    --accent:#4F46E5; --accent-hov:#4338CA; --accent-soft:#EEF0FD; --accent-ring:rgba(79,70,229,.18);
+    --teal:#0D9488; --teal-hov:#0F766E; --teal-soft:#F0FDFA; --teal-bd:#BFE8E2;
+    --green:#16A34A; --green-soft:#F0FDF4; --green-bd:#BBE7C9;
+    --red:#DC2626; --red-soft:#FEF2F2; --red-bd:#F5C6C6;
+    --amber:#B45309; --amber-soft:#FFFBEB; --amber-bd:#F1DFA8;
+    --r-lg:12px; --r-md:10px; --r-sm:8px;
+    --sh-sm:0 1px 2px rgba(16,24,40,.04);
+    --sh-md:0 1px 2px rgba(16,24,40,.05),0 4px 16px -4px rgba(16,24,40,.08);
+    --mono:"SF Mono",ui-monospace,"Cascadia Code",Consolas,monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}
-  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);
+    color:var(--text);display:flex;min-height:100vh;font-size:14px;line-height:1.5}
+  ::selection{background:var(--accent-soft)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:#D3D6DC;border-radius:8px}
+  ::-webkit-scrollbar-thumb:hover{background:#BFC3CB}
+  :focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-ring)}
 
-  /* sidebar */
-  .sidebar{width:210px;background:var(--sidebar);color:#fff;flex-shrink:0;display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh}
-  .brand{padding:0 18px 14px;border-bottom:1px solid var(--sidebar-sel)}
-  .brand h1{font-size:16px}.brand p{font-size:11px;color:var(--subtle);margin-top:2px}
-  .nav{padding:10px 8px;flex:1}
-  .nav a{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:6px;color:#e5e7eb;text-decoration:none;font-size:14px;cursor:pointer;margin-bottom:2px}
-  .nav a:hover{background:var(--sidebar-sel)}
-  .nav a.active{background:var(--sidebar-sel);font-weight:600;color:#fff}
-  .nav .ic{width:22px;text-align:center;opacity:.85}
-  .ver{padding:12px 18px;font-size:11px;color:var(--subtle)}
+  /* ── sidebar ─────────────────────────────────────────────── */
+  .sidebar{width:232px;background:var(--sidebar);border-right:1px solid var(--border);
+    flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{padding:20px 16px 16px;border-bottom:1px solid var(--border)}
+  .brand-logo{height:30px;display:block}
+  .brand p{font-size:11.5px;color:var(--text-3);margin-top:8px}
+  .nav{padding:8px;flex:1;display:flex;flex-direction:column;gap:1px}
+  .nav-label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.05em;
+    text-transform:uppercase;padding:14px 10px 6px}
+  .nav a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);
+    color:var(--text-2);text-decoration:none;font-size:13.5px;font-weight:500;cursor:pointer;
+    transition:background .12s,color .12s}
+  .nav a svg{width:16px;height:16px;flex-shrink:0;opacity:.75}
+  .nav a:hover{background:#F0F1F4;color:var(--text)}
+  .nav a.active{background:var(--accent-soft);color:var(--accent)}
+  .nav a.active svg{opacity:1}
+  .ver{padding:14px 18px;font-size:11.5px;color:var(--text-3);border-top:1px solid var(--border)}
 
-  /* main */
+  /* ── main / topbar ───────────────────────────────────────── */
   .main{flex:1;display:flex;flex-direction:column;min-width:0}
-  .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;font-size:13px;position:sticky;top:0;z-index:5}
-  #credStatus{font-weight:600}
-  .content{padding:26px 28px;max-width:1060px;width:100%}
-  h2.page-title{font-size:22px;margin-bottom:4px}
-  .subtitle{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .topbar{background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);
+    padding:0 32px;height:56px;display:flex;justify-content:space-between;align-items:center;
+    font-size:13px;position:sticky;top:0;z-index:10}
+  #pageTitle{color:var(--text-3);font-weight:500}
+  #pageTitle b{color:var(--text);font-weight:600}
+  .topbar-right{display:flex;align-items:center;gap:16px}
+  .cred-pill{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;
+    padding:5px 12px;border-radius:999px;border:1px solid var(--border)}
+  .cred-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+  .cred-pill.ok{color:#15803D;background:var(--green-soft);border-color:var(--green-bd)}
+  .cred-pill.err{color:#B91C1C;background:var(--red-soft);border-color:var(--red-bd)}
+  #clock{color:var(--text-3);font-variant-numeric:tabular-nums;font-size:12.5px}
 
-  .card{background:var(--white);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;overflow:hidden}
-  .card-hd{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-  .card-hd h3{font-size:15px}.card-hd p{font-size:12px;color:var(--muted);margin-top:2px}
-  .card-bd{padding:18px}
+  .content{padding:32px;max-width:1080px;width:100%;animation:pageIn .18s ease}
+  @keyframes pageIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  h2.page-title{font-size:20px;font-weight:600;letter-spacing:-.02em;margin-bottom:4px}
+  .subtitle{color:var(--text-2);font-size:13.5px;margin-bottom:24px}
 
-  label.fld{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 5px}
+  /* ── cards ───────────────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+    margin-bottom:24px;box-shadow:var(--sh-sm);overflow:hidden}
+  .card-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;
+    justify-content:space-between;align-items:center;gap:12px}
+  .card-hd h3{font-size:14px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+  .card-hd p{font-size:12.5px;color:var(--text-2);margin-top:2px}
+  .card-bd{padding:20px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex-shrink:0}
+
+  /* ── forms ───────────────────────────────────────────────── */
+  label.fld{display:block;font-size:12.5px;font-weight:500;color:var(--text-2);margin:0 0 6px}
   input[type=text],input[type=email],input[type=password],textarea{
-    width:100%;background:var(--entry-bg);border:1px solid var(--entry-bd);border-radius:6px;
-    padding:9px 11px;font-size:14px;font-family:inherit;margin-bottom:14px;color:var(--text)}
-  textarea{font-family:Consolas,monospace;font-size:13px;resize:vertical;min-height:210px}
-  input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-  .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:220px}
+    width:100%;background:var(--surface);border:1px solid var(--border-2);border-radius:var(--r-sm);
+    padding:8px 12px;font-size:13.5px;font-family:inherit;margin-bottom:16px;color:var(--text);
+    transition:border-color .12s,box-shadow .12s}
+  input::placeholder,textarea::placeholder{color:var(--text-3)}
+  input:hover,textarea:hover{border-color:#C8CCD4}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-ring)}
+  textarea{font-family:var(--mono);font-size:12.5px;line-height:1.65;resize:vertical;min-height:220px}
+  .row{display:flex;gap:24px;flex-wrap:wrap}.row>div{flex:1;min-width:220px}
 
-  .btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-  .btn:hover{background:var(--accent-dark)}.btn:disabled{opacity:.55;cursor:not-allowed}
-  .btn.green{background:var(--green)}.btn.green:hover{filter:brightness(.93)}
-  .btn.navy{background:var(--navy)}.btn.navy:hover{filter:brightness(1.25)}
-  .btn.outline{background:#fff;color:var(--accent);border:1px solid var(--accent)}
-  .btn.sm{padding:7px 13px;font-size:13px}
-  .btn.gray{background:#fff;color:var(--muted);border:1px solid var(--entry-bd)}
+  /* ── buttons ─────────────────────────────────────────────── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;
+    padding:0 16px;border-radius:var(--r-sm);border:1px solid transparent;font-family:inherit;
+    font-size:13px;font-weight:500;cursor:pointer;transition:background .12s,border-color .12s,
+    box-shadow .12s,transform .06s;white-space:nowrap}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .btn svg{width:15px;height:15px}
+  .btn.primary{background:var(--accent);color:#fff;box-shadow:var(--sh-sm)}
+  .btn.primary:hover:not(:disabled){background:var(--accent-hov)}
+  .btn.green{background:var(--green);color:#fff;box-shadow:var(--sh-sm)}
+  .btn.green:hover:not(:disabled){background:#15803D}
+  .btn.secondary{background:var(--surface);color:var(--text);border-color:var(--border-2);box-shadow:var(--sh-sm)}
+  .btn.secondary:hover:not(:disabled){background:#F7F8FA;border-color:#C8CCD4}
+  .btn.teal{background:var(--teal);color:#fff;box-shadow:var(--sh-sm)}
+  .btn.teal:hover:not(:disabled){background:var(--teal-hov)}
+  .btn.lg{height:40px;padding:0 20px;font-size:13.5px}
 
-  .hint{background:var(--blue-bg);border:1px solid #BFDBFE;color:var(--blue-fg);font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:14px}
-  .warn{background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;font-weight:600;font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:14px}
+  /* ── callouts ────────────────────────────────────────────── */
+  .callout{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;line-height:1.55;
+    padding:10px 14px;border-radius:var(--r-sm);margin-bottom:16px;border:1px solid}
+  .callout.info{background:var(--accent-soft);border-color:#DDE1FB;color:#4341B5}
+  .callout.warn{background:var(--amber-soft);border-color:var(--amber-bd);color:var(--amber)}
+  .callout b{font-weight:600}
 
-  /* stat cards */
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin-bottom:22px}
-  .stat{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-  .stat .bar{height:4px}.stat .in{padding:14px 16px}
-  .stat .t{font-size:12px;color:var(--muted)}.stat .v{font-size:26px;font-weight:700;margin-top:4px}
+  /* ── stats ───────────────────────────────────────────────── */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+  .stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+    padding:16px 18px;box-shadow:var(--sh-sm)}
+  .stat .t{font-size:12.5px;font-weight:500;color:var(--text-2);display:flex;align-items:center;gap:7px}
+  .stat .v{font-size:26px;font-weight:600;letter-spacing:-.02em;margin-top:6px;
+    font-variant-numeric:tabular-nums}
 
-  /* tabs */
-  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--border);margin-bottom:18px}
-  .tab{padding:10px 16px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  /* ── tabs (segmented control) ────────────────────────────── */
+  .tabs{display:inline-flex;background:#EEEFF3;border-radius:var(--r-md);padding:3px;gap:2px;margin-bottom:20px}
+  .tab{padding:7px 18px;cursor:pointer;font-weight:500;font-size:13px;color:var(--text-2);
+    border-radius:7px;transition:color .12s,background .12s,box-shadow .12s;user-select:none}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--text);background:var(--surface);box-shadow:var(--sh-sm);font-weight:600}
+  .tab .tab-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:8px;
+    vertical-align:1px;opacity:.35;transition:opacity .12s}
+  .tab.active .tab-dot{opacity:1}
   .tab[data-wb=main].active{color:var(--accent)}
-  .tab[data-wb=basic].active{color:var(--navy);border-bottom-color:var(--navy)}
+  .tab[data-wb=basic].active{color:var(--teal)}
 
-  .wbhead{padding:11px 16px;color:#fff;font-weight:600;font-size:14px;border-radius:7px 7px 0 0;display:flex;justify-content:space-between;align-items:center}
-  .sheetbox label{display:flex;align-items:center;gap:8px;font-size:14px;padding:5px 0}
-  .pill{display:inline-block;background:#F3F4F6;color:#374151;border-radius:12px;padding:2px 10px;font-size:12px;margin-left:auto}
-  .muted-sm{color:var(--muted);font-size:13px}
+  /* workbook-accented cards */
+  .card.wb-main>.card-hd{background:linear-gradient(to right,var(--accent-soft),rgba(238,240,253,0) 70%);
+    border-bottom-color:#DDE1FB}
+  .card.wb-basic>.card-hd{background:linear-gradient(to right,var(--teal-soft),rgba(240,253,250,0) 70%);
+    border-bottom-color:var(--teal-bd)}
 
-  .log{background:#0B1120;color:#cbd5e1;font-family:Consolas,monospace;font-size:12px;border-radius:6px;padding:14px;height:300px;overflow:auto;white-space:pre-wrap}
-  .log .ok{color:#4ade80}.log .fail{color:#f87171}.log .info{color:#93c5fd}.log .err{color:#f87171}
-  .status{font-size:13px;font-weight:600;margin-top:12px;min-height:18px}
+  /* bordered sub-panels inside the composer */
+  .panel{border:1px solid var(--border);border-radius:var(--r-md);padding:16px;background:#FBFBFC}
+  .panel input[type=text],.panel textarea{background:var(--surface)}
 
-  .step{font-size:13px;padding:4px 0}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  /* ── sheets / badges / pills ─────────────────────────────── */
+  .sheetbox label{display:flex;align-items:center;gap:9px;font-size:13px;padding:7px 8px;
+    border-radius:6px;cursor:pointer;transition:background .1s}
+  .sheetbox label:hover{background:#F5F6F8}
+  .sheetbox input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;margin:0;flex-shrink:0}
+  .pill{display:inline-block;background:#F0F1F4;color:var(--text-2);border-radius:999px;
+    padding:1px 9px;font-size:11.5px;font-weight:500;margin-left:auto;font-variant-numeric:tabular-nums}
+  .badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px}
+  .badge.on{background:var(--green-soft);color:#15803D;border:1px solid var(--green-bd)}
+  .badge.off{background:#F0F1F4;color:var(--text-3);border:1px solid var(--border)}
+  .muted-sm{color:var(--text-2);font-size:12.5px}
+
+  /* ── log console ─────────────────────────────────────────── */
+  .log{background:#0C111C;color:#8B95A7;font-family:var(--mono);font-size:12px;line-height:1.7;
+    border-radius:var(--r-md);padding:16px;height:300px;overflow:auto;white-space:pre-wrap;
+    border:1px solid #1E2634}
+  .log .ok{color:#34D399}.log .fail{color:#F87171}.log .info{color:#818CF8}.log .err{color:#F87171}
+  .status{font-size:13px;font-weight:500;min-height:20px}
+
+  /* ── progress bar ────────────────────────────────────────── */
+  .progress{height:6px;background:#EEEFF3;border-radius:999px;overflow:hidden;margin:12px 0 4px}
+  .progress-fill{height:100%;width:0%;background:var(--accent);border-radius:999px;
+    transition:width .4s ease}
+
+  /* ── misc ────────────────────────────────────────────────── */
+  .step{font-size:13px;padding:5px 0;color:var(--text-2)}
+  .step b{color:var(--text);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
   .hidden{display:none}
-  .badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
-  .badge.on{background:#F0FDF4;color:#15803D}.badge.off{background:#FEF2F2;color:#B91C1C}
   table{width:100%;border-collapse:collapse;font-size:13px}
-  td{padding:6px 8px;border-bottom:1px solid var(--border)}
-  td.ts{color:var(--muted);white-space:nowrap;width:80px}
+  td{padding:8px 10px;border-bottom:1px solid var(--border)}
+  tr:last-child td{border-bottom:none}
+  td.ts{color:var(--text-3);white-space:nowrap;width:76px;font-family:var(--mono);font-size:11.5px}
+  .send-row{display:flex;align-items:center;gap:16px;margin-top:8px;flex-wrap:wrap}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+  hr.sep{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+  /* ── responsive ──────────────────────────────────────────── */
+  @media(max-width:960px){
+    .grid2{grid-template-columns:1fr}
+    .content{padding:20px}
+  }
+  @media(max-width:760px){
+    body{flex-direction:column}
+    .sidebar{width:100%;height:auto;position:static;flex-direction:row;align-items:center;
+      border-right:none;border-bottom:1px solid var(--border)}
+    .brand{padding:12px 16px;border-bottom:none}.brand p{display:none}.brand-logo{height:26px}
+    .nav{flex-direction:row;overflow-x:auto;padding:8px}
+    .nav-label,.ver{display:none}
+    .topbar{padding:0 16px}
+    #clock{display:none}
+  }
 </style>
 </head>
 <body>
   <aside class="sidebar">
-    <div class="brand"><h1>Mail Sender</h1><p>Bulk Email Tool</p></div>
+    <div class="brand">
+      <img src="/static/iscale-logo.png" alt="The iScale" class="brand-logo">
+      <p>Mail Sender · Bulk email workspace</p>
+    </div>
     <nav class="nav">
-      <a data-page="dashboard" class="active"><span class="ic">▦</span>Dashboard</a>
-      <a data-page="workbooks"><span class="ic">▤</span>Workbooks</a>
-      <a data-page="compose"><span class="ic">✉</span>Compose</a>
-      <a data-page="log"><span class="ic">≣</span>Sent Log</a>
-      <a data-page="settings"><span class="ic">⚙</span>Settings</a>
-      <a href="/logout"><span class="ic">⎋</span>Logout</a>
+      <span class="nav-label">Workspace</span>
+      <a data-page="dashboard" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard</a>
+      <a data-page="workbooks">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>
+        Workbooks</a>
+      <a data-page="compose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>
+        Compose</a>
+      <a data-page="log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        Sent log</a>
+      <span class="nav-label">System</span>
+      <a data-page="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></svg>
+        Settings</a>
+      <a href="/logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        Log out</a>
     </nav>
-    <div class="ver">v2.0 web</div>
+    <div class="ver">v2.1 · web</div>
   </aside>
 
   <div class="main">
     <div class="topbar">
-      <span id="credStatus" style="color:var(--red)">No Gmail credentials set</span>
-      <span id="clock" style="color:var(--muted)"></span>
+      <span id="pageTitle">Mail Sender&ensp;/&ensp;<b>Dashboard</b></span>
+      <div class="topbar-right">
+        <span id="credStatus" class="cred-pill err">No credentials</span>
+        <span id="clock"></span>
+      </div>
     </div>
 
     <!-- ===================== DASHBOARD ===================== -->
@@ -116,48 +247,48 @@
       <h2 class="page-title">Dashboard</h2>
       <p class="subtitle">Overview of your sending activity.</p>
       <div class="stats">
-        <div class="stat"><div class="bar" style="background:var(--accent)"></div><div class="in"><div class="t">Total Sent</div><div class="v" id="stSent">0</div></div></div>
-        <div class="stat"><div class="bar" style="background:var(--red)"></div><div class="in"><div class="t">Failed</div><div class="v" id="stFail">0</div></div></div>
-        <div class="stat"><div class="bar" style="background:var(--green)"></div><div class="in"><div class="t">Send Batches</div><div class="v" id="stBatch">0</div></div></div>
-        <div class="stat"><div class="bar" style="background:var(--amber)"></div><div class="in"><div class="t">Credentials</div><div class="v" id="stCred" style="font-size:18px;padding-top:6px">—</div></div></div>
+        <div class="stat"><div class="t"><span class="dot" style="background:var(--accent)"></span>Total sent</div><div class="v" id="stSent">0</div></div>
+        <div class="stat"><div class="t"><span class="dot" style="background:var(--red)"></span>Failed</div><div class="v" id="stFail">0</div></div>
+        <div class="stat"><div class="t"><span class="dot" style="background:var(--green)"></span>Send batches</div><div class="v" id="stBatch">0</div></div>
+        <div class="stat"><div class="t"><span class="dot" style="background:var(--amber)"></span>Credentials</div><div class="v" id="stCred" style="font-size:16px;padding-top:8px">—</div></div>
       </div>
       <div class="card">
         <div class="card-hd"><h3>Quick actions</h3></div>
-        <div class="card-bd">
-          <button class="btn outline sm" onclick="go('workbooks')">Load Workbooks</button>
-          <button class="btn outline sm" onclick="go('compose')">Compose Email</button>
-          <button class="btn outline sm" onclick="go('settings')">Settings</button>
-        </div>
+        <div class="card-bd"><div class="btn-row">
+          <button class="btn secondary" onclick="go('workbooks')">Load workbooks</button>
+          <button class="btn secondary" onclick="go('compose')">Compose email</button>
+          <button class="btn secondary" onclick="go('settings')">Settings</button>
+        </div></div>
       </div>
       <div class="card">
         <div class="card-hd"><h3>Recent activity</h3></div>
-        <div class="card-bd"><table id="dashLog"><tr><td class="muted-sm">No activity yet.</td></tr></table></div>
+        <div class="card-bd" style="padding:8px 12px"><table id="dashLog"><tr><td class="muted-sm">No activity yet.</td></tr></table></div>
       </div>
     </div>
 
     <!-- ===================== WORKBOOKS ===================== -->
     <div class="content hidden" data-pg="workbooks">
       <h2 class="page-title">Workbooks</h2>
-      <p class="subtitle">Load recipients from your two Google Sheets. (Set the URLs in Settings.)</p>
+      <p class="subtitle">Load recipients from your two Google Sheets. Set the URLs in Settings.</p>
       <div class="grid2">
-        <div class="card">
-          <div class="wbhead" style="background:var(--navy)">Basic Workbook <span class="badge off" id="wbBadge-basic">not loaded</span></div>
+        <div class="card wb-main">
+          <div class="card-hd"><h3><span class="dot" style="background:var(--accent)"></span>Main Workbook</h3><span class="badge off" id="wbBadge-main">not loaded</span></div>
           <div class="card-bd">
-            <div class="muted-sm" id="wbUrl-basic" style="word-break:break-all;margin-bottom:10px">No URL set.</div>
-            <button class="btn navy sm" onclick="loadWb('basic')">Load from Google Sheet</button>
-            <div class="sheetbox" id="wbSheets-basic" style="margin-top:12px"></div>
+            <div class="muted-sm" id="wbUrl-main" style="word-break:break-all;margin-bottom:14px">No URL set.</div>
+            <button class="btn primary" onclick="loadWb('main')">Load from Google Sheet</button>
+            <div class="sheetbox" id="wbSheets-main" style="margin-top:14px"></div>
           </div>
         </div>
-        <div class="card">
-          <div class="wbhead" style="background:var(--accent)">Main Workbook <span class="badge off" id="wbBadge-main">not loaded</span></div>
+        <div class="card wb-basic">
+          <div class="card-hd"><h3><span class="dot" style="background:var(--teal)"></span>Basic Workbook</h3><span class="badge off" id="wbBadge-basic">not loaded</span></div>
           <div class="card-bd">
-            <div class="muted-sm" id="wbUrl-main" style="word-break:break-all;margin-bottom:10px">No URL set.</div>
-            <button class="btn sm" onclick="loadWb('main')">Load from Google Sheet</button>
-            <div class="sheetbox" id="wbSheets-main" style="margin-top:12px"></div>
+            <div class="muted-sm" id="wbUrl-basic" style="word-break:break-all;margin-bottom:14px">No URL set.</div>
+            <button class="btn teal" onclick="loadWb('basic')">Load from Google Sheet</button>
+            <div class="sheetbox" id="wbSheets-basic" style="margin-top:14px"></div>
           </div>
         </div>
       </div>
-      <div class="hint">Each sheet must be shared as <b>Anyone with the link → Viewer</b>. Headers in row 1, recipient data from row 6 (Email, Name, …).</div>
+      <div class="callout info"><span>ⓘ</span><span>Each sheet must be shared as <b>Anyone with the link → Viewer</b>. Headers in row 1, recipient data from row 6 (Email, Name, …).</span></div>
     </div>
 
     <!-- ===================== COMPOSE ===================== -->
@@ -165,8 +296,8 @@
       <h2 class="page-title">Email Composer</h2>
       <p class="subtitle">Write your email once — the same content is sent to every recipient in the selected sheets.</p>
       <div class="tabs">
-        <div class="tab active" data-wb="main" onclick="switchTab('main')">Main Workbook</div>
-        <div class="tab" data-wb="basic" onclick="switchTab('basic')">Basic Workbook</div>
+        <div class="tab active" data-wb="main" onclick="switchTab('main')"><span class="tab-dot" style="background:var(--accent)"></span>Main Workbook</div>
+        <div class="tab" data-wb="basic" onclick="switchTab('basic')"><span class="tab-dot" style="background:var(--teal)"></span>Basic Workbook</div>
       </div>
 
       <div id="pane-main"></div>
@@ -183,45 +314,54 @@
     <!-- ===================== SETTINGS ===================== -->
     <div class="content hidden" data-pg="settings">
       <h2 class="page-title">Settings</h2>
-      <p class="subtitle">Credentials are stored in your .env (Render: secret env vars) so you never re-enter them.</p>
+      <p class="subtitle">Sending account and recipient sheets for this workspace.</p>
       <div class="grid2">
         <div>
-          <div class="card">
-            <div class="card-hd"><h3>Gmail Credentials</h3><p>Sender for all outgoing emails.</p></div>
+          <div class="card hidden" id="apiInfoCard">
+            <div class="card-hd"><div><h3>Sending account</h3><p>Managed on the server — not editable here.</p></div><span class="badge on">Gmail API</span></div>
             <div class="card-bd">
-              <div class="warn">Use a Gmail <b>App Password</b> — NOT your normal login password.</div>
-              <label class="fld">Gmail Address</label>
+              <label class="fld">All emails are sent as</label>
+              <div style="font-size:14px;font-weight:600;margin-bottom:14px" id="apiSender">—</div>
+              <div class="callout info"><span>ⓘ</span><span>This app sends through the <b>Gmail API</b>. The sending account is fixed by the server's authorization — to change it, update <b>GMAIL_ADDRESS</b> / <b>GMAIL_REFRESH_TOKEN</b> in Render → Environment.</span></div>
+            </div>
+          </div>
+          <div class="card" id="credCard">
+            <div class="card-hd"><div><h3>Gmail credentials</h3><p>Sender for all outgoing emails.</p></div></div>
+            <div class="card-bd">
+              <div class="callout warn"><span>⚠</span><span>Use a Gmail <b>App Password</b> — not your normal login password.</span></div>
+              <label class="fld">Gmail address</label>
               <input type="email" id="setEmail" placeholder="you@gmail.com">
-              <label class="fld">App Password (16 chars)</label>
-              <input type="password" id="setPwd" placeholder="leave blank to keep current">
-              <button class="btn green" onclick="saveCreds()">Save Credentials</button>
-              <div class="status" id="credSaveStatus"></div>
-              <p class="muted-sm" style="margin-top:8px">On Render, set <b>GMAIL_ADDRESS</b> and <b>GMAIL_APP_PASSWORD</b> in the dashboard's Environment tab instead.</p>
+              <label class="fld">App password (16 characters)</label>
+              <input type="password" id="setPwd" placeholder="Leave blank to keep current">
+              <button class="btn green" onclick="saveCreds()">Save credentials</button>
+              <div class="status" id="credSaveStatus" style="margin-top:10px"></div>
+              <p class="muted-sm" style="margin-top:10px">On Render, set <b>GMAIL_ADDRESS</b> and <b>GMAIL_APP_PASSWORD</b> in the dashboard's Environment tab instead.</p>
             </div>
           </div>
           <div class="card">
-            <div class="card-hd"><h3>Google Sheet URLs</h3><p>Separate sheet for each workbook.</p></div>
+            <div class="card-hd"><div><h3>Google Sheet URLs</h3><p>Separate sheet for each workbook.</p></div></div>
             <div class="card-bd">
-              <label class="fld">Basic Workbook — Sheet URL</label>
-              <input type="text" id="setBasicUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
-              <label class="fld">Main Workbook — Sheet URL</label>
-              <input type="text" id="setMainUrl" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
-              <button class="btn" onclick="saveUrls()">Save URLs</button>
-              <div class="status" id="urlSaveStatus"></div>
+              <label class="fld">Main Workbook — sheet URL</label>
+              <input type="text" id="setMainUrl" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
+              <label class="fld">Basic Workbook — sheet URL</label>
+              <input type="text" id="setBasicUrl" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
+              <button class="btn primary" onclick="saveUrls()">Save URLs</button>
+              <div class="status" id="urlSaveStatus" style="margin-top:10px"></div>
             </div>
           </div>
         </div>
-        <div class="card">
+        <div class="card" style="align-self:start" id="pwdHelpCard">
           <div class="card-hd"><h3>How to get a Gmail App Password</h3></div>
           <div class="card-bd">
-            <div class="step">1. Go to <b>myaccount.google.com</b></div>
-            <div class="step">2. Click <b>Security</b> in the left sidebar</div>
-            <div class="step">3. Enable <b>2-Step Verification</b></div>
-            <div class="step">4. Scroll to <b>App Passwords</b> at the bottom</div>
-            <div class="step">5. Type a name (e.g. "MailSender") → <b>Create</b></div>
-            <div class="step">6. Copy the 16-character password → paste it above</div>
-            <div class="hint" style="margin-top:14px">Gmail SMTP limits: ~500/day (personal), ~2,000/day (Workspace).</div>
-            <div class="step" style="margin-top:10px"><b>Sheet sharing:</b> open each sheet → Share → "Anyone with the link" → Viewer.</div>
+            <div class="step">1&ensp;Go to <b>myaccount.google.com</b></div>
+            <div class="step">2&ensp;Click <b>Security</b> in the left sidebar</div>
+            <div class="step">3&ensp;Enable <b>2-Step Verification</b></div>
+            <div class="step">4&ensp;Scroll to <b>App Passwords</b> at the bottom</div>
+            <div class="step">5&ensp;Type a name (e.g. “MailSender”) → <b>Create</b></div>
+            <div class="step">6&ensp;Copy the 16-character password → paste it here</div>
+            <hr class="sep">
+            <div class="callout info" style="margin:0 0 12px"><span>ⓘ</span><span>Gmail limits: ~500 emails/day (personal), ~2,000/day (Workspace).</span></div>
+            <div class="step"><b>Sheet sharing:</b> open each sheet → Share → “Anyone with the link” → Viewer.</div>
           </div>
         </div>
       </div>
@@ -229,7 +369,8 @@
   </div>
 
 <script>
-const WB={basic:{label:"Basic Workbook",color:"var(--navy)"},main:{label:"Main Workbook",color:"var(--accent)"}};
+const WB={main:{label:"Main Workbook",color:"var(--accent)",btn:"primary"},basic:{label:"Basic Workbook",color:"var(--teal)",btn:"teal"}};
+const TITLES={dashboard:"Dashboard",workbooks:"Workbooks",compose:"Compose",log:"Sent Log",settings:"Settings"};
 let STATE=null, activeTab="main";
 const loaded={basic:null, main:null}; // sheet summaries after load
 
@@ -237,6 +378,7 @@ const loaded={basic:null, main:null}; // sheet summaries after load
 function go(page){
   document.querySelectorAll(".nav a").forEach(x=>x.classList.toggle("active",x.dataset.page===page));
   document.querySelectorAll(".content").forEach(c=>c.classList.toggle("hidden",c.dataset.pg!==page));
+  document.getElementById("pageTitle").innerHTML=`Mail Sender&ensp;/&ensp;<b>${TITLES[page]||""}</b>`;
   if(page==="dashboard"||page==="log") refreshState();
 }
 document.querySelectorAll(".nav a[data-page]").forEach(a=>a.onclick=()=>go(a.dataset.page));
@@ -251,10 +393,11 @@ setInterval(tick,1000);tick();
 function setCredStatus(){
   const cs=document.getElementById("credStatus");
   const ok=STATE&&STATE.email&&STATE.has_password;
-  cs.textContent=ok?("Sending as: "+STATE.email):"No Gmail credentials set";
-  cs.style.color=ok?"var(--green)":"var(--red)";
-  document.getElementById("stCred").textContent=ok?"Ready":"Not set";
-  document.getElementById("stCred").style.color=ok?"var(--green)":"var(--red)";
+  cs.textContent=ok?("Sending as "+STATE.email):"No credentials set";
+  cs.className="cred-pill "+(ok?"ok":"err");
+  const sc=document.getElementById("stCred");
+  sc.textContent=ok?"Ready":"Not set";
+  sc.style.color=ok?"var(--green)":"var(--red)";
 }
 
 // ---------- state ----------
@@ -263,6 +406,13 @@ async function refreshState(){
   if(r.status===401){location.href="/login";return;}   // session expired
   STATE=await r.json();
   setCredStatus();
+  // Gmail API mode: the sender is fixed server-side, so hide the editable
+  // credential form and show the read-only sending-account card instead.
+  const apiMode=STATE.send_method==="Gmail API";
+  document.getElementById("credCard").classList.toggle("hidden",apiMode);
+  document.getElementById("pwdHelpCard").classList.toggle("hidden",apiMode);
+  document.getElementById("apiInfoCard").classList.toggle("hidden",!apiMode);
+  document.getElementById("apiSender").textContent=STATE.email||"—";
   // dashboard
   document.getElementById("stSent").textContent=STATE.stats.sent||0;
   document.getElementById("stFail").textContent=STATE.stats.failed||0;
@@ -315,30 +465,39 @@ function buildPane(wb){
   const sheets=loaded[wb];
   const sheetHtml=sheets?sheets.map(s=>
     `<label><input type="checkbox" class="chk-${wb}" value="${esc(s.sheet_name)}" checked> ${esc(s.sheet_name)}<span class="pill">${s.count}</span></label>`).join("")
-    :'<p class="muted-sm">Not loaded yet — go to Workbooks and click “Load”.</p>';
+    :'<p class="muted-sm" style="padding:4px">Not loaded yet — go to Workbooks and click “Load”.</p>';
   document.getElementById("pane-"+wb).innerHTML=`
-    <div class="card">
-      <div class="wbhead" style="background:${WB[wb].color}">Email Template — ${WB[wb].label}</div>
+    <div class="card wb-${wb}">
+      <div class="card-hd">
+        <div><h3><span class="dot" style="background:${WB[wb].color}"></span>Email template — ${WB[wb].label}</h3></div>
+      </div>
       <div class="card-bd">
-        <div class="hint">Placeholder: <b>{date}</b> &nbsp; (inserts today's date)</div>
+        <div class="callout info"><span>ⓘ</span><span>Placeholder <b>{date}</b> inserts today's date.</span></div>
         <div class="row">
-          <div style="flex:2">
+          <div class="panel" style="flex:2">
             <label class="fld">Subject</label>
             <input type="text" id="subj-${wb}" value="${esc(t.subject)}">
             <label class="fld">Body</label>
-            <textarea id="body-${wb}">${esc(t.body)}</textarea>
+            <textarea id="body-${wb}" style="margin-bottom:0">${esc(t.body)}</textarea>
           </div>
-          <div style="flex:1;min-width:230px">
+          <div class="panel" style="flex:1;min-width:230px">
             <label class="fld">Sheets to include</label>
-            <div class="sheetbox" id="chkbox-${wb}" style="border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--entry-bg);margin-bottom:14px">${sheetHtml}</div>
-            <button class="btn gray sm" onclick="preview('${wb}')">Preview</button>
-            <button class="btn outline sm" onclick="saveTpl('${wb}')">Save Template</button>
+            <div class="sheetbox" id="chkbox-${wb}" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:8px;margin-bottom:16px;background:var(--surface)">${sheetHtml}</div>
+            <div class="btn-row">
+              <button class="btn secondary" onclick="preview('${wb}')">Preview</button>
+              <button class="btn secondary" onclick="saveTpl('${wb}')">Save template</button>
+            </div>
           </div>
         </div>
-        <button class="btn green" style="font-size:15px;padding:12px 24px" onclick="sendWb('${wb}')">Send ${WB[wb].label} Emails</button>
-        <div class="status" id="sendStatus-${wb}"></div>
+        <div class="send-row">
+          <button class="btn ${WB[wb].btn} lg" id="sendBtn-${wb}" onclick="sendWb('${wb}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>
+            Send ${WB[wb].label} emails</button>
+          <div class="status" id="sendStatus-${wb}"></div>
+        </div>
+        <div class="progress hidden" id="sendProg-${wb}"><div class="progress-fill" id="sendBar-${wb}" style="background:${WB[wb].color}"></div></div>
         <div id="previewBox-${wb}"></div>
-        <div class="log hidden" id="sendLog-${wb}" style="margin-top:12px"></div>
+        <div class="log hidden" id="sendLog-${wb}" style="margin-top:16px"></div>
       </div>
     </div>`;
 }
@@ -355,15 +514,15 @@ async function saveTpl(wb){
 
 async function preview(wb){
   const pb=document.getElementById("previewBox-"+wb);
-  pb.innerHTML='<p class="muted-sm" style="margin-top:10px">Generating preview…</p>';
+  pb.innerHTML='<p class="muted-sm" style="margin-top:12px">Generating preview…</p>';
   const t=tpl(wb);
   const r=await fetch("/api/preview",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({workbook:wb,subject:t.subject,body:t.body,sheets:selectedSheets(wb)})});
   const d=await r.json();
-  if(!d.ok){pb.innerHTML=`<p style="color:var(--red);margin-top:10px">${esc(d.error)}</p>`;return;}
-  pb.innerHTML=`<div class="card" style="margin-top:12px"><div class="card-hd"><h3>Preview → ${esc(d.to)}</h3></div>
-    <div class="card-bd"><b>Subject:</b> ${esc(d.subject)}<hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
-    <pre style="white-space:pre-wrap;font-family:inherit;font-size:14px">${esc(d.body)}</pre></div></div>`;
+  if(!d.ok){pb.innerHTML=`<p style="color:var(--red);margin-top:12px">${esc(d.error)}</p>`;return;}
+  pb.innerHTML=`<div class="card" style="margin:16px 0 0"><div class="card-hd"><h3>Preview → ${esc(d.to)}</h3></div>
+    <div class="card-bd"><b style="font-size:13px">Subject:</b> <span style="font-size:13px">${esc(d.subject)}</span><hr class="sep">
+    <pre style="white-space:pre-wrap;font-family:inherit;font-size:13.5px">${esc(d.body)}</pre></div></div>`;
 }
 
 function logLineHtml(l){
@@ -376,9 +535,12 @@ async function sendWb(wb){
   if(!STATE||!STATE.email||!STATE.has_password){st.textContent="Set Gmail credentials in Settings first.";st.style.color="var(--red)";go('settings');return;}
   if(!loaded[wb]){st.textContent="Load this workbook first (Workbooks page).";st.style.color="var(--red)";return;}
   const btnLog=document.getElementById("sendLog-"+wb);
-  const btn=document.querySelector(`#pane-${wb} .btn.green`);
+  const btn=document.getElementById("sendBtn-"+wb);
+  const prog=document.getElementById("sendProg-"+wb);
+  const bar=document.getElementById("sendBar-"+wb);
   st.textContent="Starting send…";st.style.color="var(--amber)";
   btnLog.classList.remove("hidden");btnLog.textContent="";
+  prog.classList.remove("hidden");bar.style.width="0%";
   if(btn)btn.disabled=true;
   const t=tpl(wb);
   try{
@@ -409,7 +571,9 @@ async function sendWb(wb){
         btnLog.scrollTop=btnLog.scrollHeight;
         offset=j.offset;
       }
+      bar.style.width=(j.total?Math.round((j.sent+j.failed)/j.total*100):0)+"%";
       if(j.done){
+        bar.style.width="100%";
         if(j.error){st.textContent=j.error;st.style.color="var(--red)";}
         else{st.textContent="Done — "+j.summary;st.style.color=j.failed===0?"var(--green)":"var(--red)";}
         refreshState();
