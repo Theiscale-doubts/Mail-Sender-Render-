@@ -3,6 +3,10 @@ Send email through the Gmail API over HTTPS (works on hosts that block SMTP,
 e.g. Render). Uses OAuth2: a long-lived refresh token is exchanged for a
 short-lived access token, then messages are POSTed to the Gmail REST API.
 
+Delivery-first strategy: every recipient must get the mail. A first pass sends
+to everyone (with short in-flight retries); anyone who still failed is queued
+and retried again at the end in slower rounds with much longer waits.
+
 Runtime needs only `requests`. Get the refresh token once by running
 get_gmail_token.py locally (see README).
 """
@@ -41,9 +45,22 @@ def _access_token(client_id, client_secret, refresh_token):
     return r.json().get("access_token")
 
 
-# Parallel workers. Gmail rate-limits around 2.5 sends/sec sustained; 8 workers
-# keeps a big batch fast while 429s are retried below.
-MAX_WORKERS = 8
+# Parallel workers for the first pass. Delivery is the priority, speed second:
+# 4 workers stays well under Gmail's sustained rate limit so far fewer sends
+# hit 429 in the first place.
+MAX_WORKERS = 4
+
+# In-flight backoff (seconds) when a single send hits a transient error.
+FIRST_PASS_BACKOFF = (2, 5, 10)
+RETRY_PASS_BACKOFF = (10, 30, 60)
+
+# Waits (seconds) before each end-of-run retry round for recipients that
+# failed the whole first pass. Escalating — the last stragglers get the
+# longest cool-down before we try them again.
+RETRY_ROUND_WAITS = (30, 90, 180)
+
+# Statuses worth retrying (rate limit / transient server trouble).
+TRANSIENT = (429, 500, 502, 503)
 
 # One requests.Session per worker thread: keeps the TLS connection to Gmail
 # open across sends instead of re-handshaking for every email.
@@ -64,6 +81,7 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
     """Same contract as email_sender.send_emails -> (success, fail, errors)."""
     counters = {"success": 0, "fail": 0}
     errors = []
+    failed_recipients = []          # recipients to retry at the end
     lock = threading.Lock()
 
     def log(msg):
@@ -73,12 +91,7 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
     token = _access_token(client_id, client_secret, refresh_token)
     headers = {"Authorization": f"Bearer {token}"}
 
-    def send_one(r):
-        email = (r.get("Email", "") or "").strip()
-        name = (r.get("Name", "") or "").strip()
-        if not email or "@" not in email:
-            return
-
+    def build_raw(r, email):
         body = fill(body_tpl, r)
         msg = MIMEMultipart("alternative")
         msg["From"] = sender_email
@@ -87,33 +100,73 @@ def send_emails_api(sender_email, client_id, client_secret, refresh_token,
         # plain-text first (fallback), branded HTML second (preferred)
         msg.attach(MIMEText(body, "plain"))
         msg.attach(MIMEText(render_html(body, r), "html"))
-        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        return base64.urlsafe_b64encode(msg.as_bytes()).decode()
 
-        try:
-            resp = _session().post(SEND_URL, headers=headers, timeout=20,
-                                   json={"raw": raw})
-            if resp.status_code in (429, 500, 502, 503):
-                # rate-limited / transient — back off once and retry
-                time.sleep(2)
+    def send_one(r, backoffs, final):
+        """Try to send to one recipient, retrying transient errors with the
+        given backoff schedule. On failure: queue for the end-of-run retry
+        rounds, or count as failed if this was the final round."""
+        email = (r.get("Email", "") or "").strip()
+        name = (r.get("Name", "") or "").strip()
+        if not email or "@" not in email:
+            return
+
+        raw = build_raw(r, email)
+        last_err = None
+        attempts = len(backoffs) + 1
+        for i in range(attempts):
+            try:
                 resp = _session().post(SEND_URL, headers=headers, timeout=20,
                                        json={"raw": raw})
-            if resp.status_code == 200:
-                with lock:
-                    counters["success"] += 1
-                log(f"OK   Sent -> {name} <{email}>")
-            else:
-                with lock:
-                    counters["fail"] += 1
-                    errors.append(f"{email}: {resp.status_code} {resp.text[:150]}")
-                log(f"FAIL Failed -> {name} <{email}>  ({resp.status_code})")
-        except requests.RequestException as e:
+                if resp.status_code == 200:
+                    with lock:
+                        counters["success"] += 1
+                    log(f"OK   Sent -> {name} <{email}>")
+                    return
+                last_err = f"{resp.status_code} {resp.text[:150]}"
+                if resp.status_code not in TRANSIENT:
+                    break               # permanent error — backoff won't help
+            except requests.RequestException as e:
+                last_err = str(e)
+            if i < len(backoffs):
+                time.sleep(backoffs[i])
+
+        if final:
             with lock:
                 counters["fail"] += 1
-                errors.append(f"{email}: {e}")
-            log(f"FAIL Failed -> {name} <{email}>  ({e})")
+                errors.append(f"{email}: {last_err}")
+            log(f"FAIL Failed -> {name} <{email}>  ({last_err})")
+        else:
+            with lock:
+                failed_recipients.append(r)
+            log(f"WARN Deferred -> {name} <{email}>  ({last_err}) — "
+                "will retry at the end")
 
+    # ---- first pass: everyone ------------------------------------------
     workers = min(MAX_WORKERS, max(1, len(recipients)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        list(pool.map(send_one, recipients))
+        list(pool.map(lambda r: send_one(r, FIRST_PASS_BACKOFF, final=False),
+                      recipients))
+
+    # ---- end-of-run retry rounds: only the ones that failed -------------
+    for round_no, wait in enumerate(RETRY_ROUND_WAITS, start=1):
+        if not failed_recipients:
+            break
+        pending, failed_recipients = failed_recipients, []
+        final = round_no == len(RETRY_ROUND_WAITS)
+        log(f"WARN {len(pending)} recipient(s) still pending — waiting "
+            f"{wait}s before retry round {round_no}/{len(RETRY_ROUND_WAITS)}")
+        time.sleep(wait)
+        # fresh access token: retry rounds can start long after the first
+        # pass, and it also recovers from a token gone stale mid-run
+        try:
+            headers["Authorization"] = (
+                "Bearer "
+                + _access_token(client_id, client_secret, refresh_token))
+        except RuntimeError as e:
+            log(f"WARN Token refresh failed before retry round: {e}")
+        # sequential + long backoffs: slow on purpose, delivery over speed
+        for r in pending:
+            send_one(r, RETRY_PASS_BACKOFF, final=final)
 
     return counters["success"], counters["fail"], errors

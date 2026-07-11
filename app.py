@@ -280,7 +280,8 @@ def api_send():
                 job["sent"] += 1
             elif m.startswith("FAIL"):
                 job["failed"] += 1
-        log(m, "ok" if m.startswith("OK") else "err")
+        log(m, "ok" if m.startswith("OK")
+            else "info" if m.startswith("WARN") else "err")
 
     def worker():
         try:
